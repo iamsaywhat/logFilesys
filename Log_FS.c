@@ -143,7 +143,7 @@ uint16_t LogFs_GetFile_NumSectors(uint16_t Sector)
 
 /***************************************************************************************************
 	  Log_Fs_GetFileProperties - Функция позволяет узнать параметры файла, который был выбран
-	   функцией "Log_Fs_FindFIle": Размер в байтах и порядковый номер в хранилище
+	   функцией "Log_Fs_FindFile": Размер в байтах и порядковый номер в хранилище
 ***************************************************************************************************/
 uint32_t Log_Fs_GetFileProperties(uint8_t CMD)
 {
@@ -463,9 +463,9 @@ void LogFs_WriteToCurrentFile(uint8_t* Buffer, uint32_t Size)
 
 
 /***************************************************************************************************
-	Log_Fs_FindFIle - Функция поиска файлов в директории
+	Log_Fs_FindFile - Функция поиска файлов в директории
 ***************************************************************************************************/
-Log_Fs_Status Log_Fs_FindFIle(uint8_t CMD)
+Log_Fs_Status Log_Fs_FindFile(uint8_t CMD)
 {
 	uint32_t Address;
 	uint8_t  buff[2];
@@ -643,10 +643,10 @@ Log_Fs_Status Log_Fs_FindFile_ByNum(uint16_t NUM)
 
 	// Проверим существует ли такой номер
 	// Посмотрим порядковый номер самого старого файла (номер должен быть самым маленьким)
-	Log_Fs_FindFIle(FIRST_FILE);
+	Log_Fs_FindFile(FIRST_FILE);
 	min_num = Log_Fs_GetFileProperties(FILE_NUMBER);
 	// Посмотрим порядковый номер самого свежего файла (номер должен быть самым большим)
-	Log_Fs_FindFIle(LAST_FILE);
+	Log_Fs_FindFile(LAST_FILE);
 	max_num = Log_Fs_GetFileProperties(FILE_NUMBER);
 	// Номер запрашиваемого файла должен принадлжеать данному диапазону, иначе ошибка - файл не найден
 	if (NUM > max_num || NUM < min_num)
@@ -658,9 +658,9 @@ Log_Fs_Status Log_Fs_FindFile_ByNum(uint16_t NUM)
 	for (i = 0; i < files; i++)
 	{
 		if(i == 0) 
-			Log_Fs_FindFIle(FIRST_FILE);
+			Log_Fs_FindFile(FIRST_FILE);
 		else 
-			Log_Fs_FindFIle(NEXT_FILE);
+			Log_Fs_FindFile(NEXT_FILE);
 		// Сверяем номер файла. Если совпадает файл найден можно выходить
 		if (Log_Fs_GetFileProperties(FILE_NUMBER) == NUM)
 			return FS_FINE;

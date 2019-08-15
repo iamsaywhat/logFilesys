@@ -151,8 +151,8 @@ int main()
 	LogFs_WriteToCurrentFile(buffer, 5);
 
 	LogFs_Info();
-	Log_Fs_FindFIle(FIRST_FILE);
-	while (FS_ALL_FILES_SCROLLS != Log_Fs_FindFIle(NEXT_FILE));
+	Log_Fs_FindFile(FIRST_FILE);
+	while (FS_ALL_FILES_SCROLLS != Log_Fs_FindFile(NEXT_FILE));
 
 
 
@@ -164,7 +164,7 @@ int main()
 
 
 	// Тестирование чтения
-	Log_Fs_FindFIle(FIRST_FILE);
+	Log_Fs_FindFile(FIRST_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
 	LogFs_ReadFile(buffer, size - 7);
 	LogFs_ReadFile(buffer , 7);
@@ -179,7 +179,7 @@ int main()
 	}
 
 
-	Log_Fs_FindFIle(NEXT_FILE);
+	Log_Fs_FindFile(NEXT_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
 	LogFs_ReadFile(buffer, size);
 	for (i = 0; i < size; i++)
@@ -192,7 +192,7 @@ int main()
 		buffer[i] = 0;
 	}
 
-	Log_Fs_FindFIle(NEXT_FILE);
+	Log_Fs_FindFile(NEXT_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
 	LogFs_ReadFile(buffer, size);
 	for (i = 0; i < size; i++)
@@ -206,7 +206,7 @@ int main()
 	}
 
 
-	Log_Fs_FindFIle(NEXT_FILE);
+	Log_Fs_FindFile(NEXT_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
 	LogFs_ReadFile(buffer, size );
 	for (i = 0; i < size; i++)
