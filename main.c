@@ -76,6 +76,7 @@ int main()
 	uint16_t count = 0;
 	uint8_t res;
 	uint32_t size;
+	uint16_t temp;
 
 	TimestampToDate(1203161493);
 	TimestampToDate(1562279506);
@@ -91,11 +92,17 @@ int main()
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
@@ -103,16 +110,25 @@ int main()
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
 
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 
 	///
@@ -121,6 +137,9 @@ int main()
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
@@ -128,6 +147,9 @@ int main()
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
@@ -136,11 +158,17 @@ int main()
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
 	LogFs_WriteToCurrentFile(buffer, 5);
@@ -148,6 +176,9 @@ int main()
 
 	LogFs_Info();
 	LogFs_CreateFile();
+	temp = LogFs_GetFileNum();
+	temp = LogFs_GetNumLastFile();
+	temp = LogFs_GetNumCurrentFile();
 	LogFs_WriteToCurrentFile(buffer, 5);
 
 	LogFs_Info();
@@ -168,69 +199,29 @@ int main()
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
 	LogFs_ReadFile(buffer, size - 7);
 	LogFs_ReadFile(buffer , 7);
-	for (i = 0; i < size - 7; i++)
-	{
-		printf("%d", buffer[i]);
-	}
-	printf("\n");
-	for (i = 0; i < 100; i++)
-	{
-		buffer[i] = 0;
-	}
+	for (i = 0; i < 100; i++) buffer[i] = 0;
 
 
 	Log_Fs_FindFile(NEXT_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
 	LogFs_ReadFile(buffer, size);
-	for (i = 0; i < size; i++)
-	{
-		printf("%d", buffer[i]);
-	}
-	printf("\n");
-	for (i = 0; i < 100; i++)
-	{
-		buffer[i] = 0;
-	}
+	for (i = 0; i < 100; i++) buffer[i] = 0;
 
 	Log_Fs_FindFile(NEXT_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
 	LogFs_ReadFile(buffer, size);
-	for (i = 0; i < size; i++)
-	{
-		printf("%d", buffer[i]);
-	}
-	printf("\n");
-	for (i = 0; i < 100; i++)
-	{
-		buffer[i] = 0;
-	}
+	for (i = 0; i < 100; i++) buffer[i] = 0;
 
 
 	Log_Fs_FindFile(NEXT_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
 	LogFs_ReadFile(buffer, size );
-	for (i = 0; i < size; i++)
-	{
-		printf("%d", buffer[i]);
-	}
-	printf("\n");
-	for (i = 0; i < 100; i++)
-	{
-		buffer[i] = 0;
-	}
+	for (i = 0; i < 100; i++) buffer[i] = 0;
 
 
 	Log_Fs_FindFile_ByNum(8);
 	LogFs_ReadFile(buffer, size);
-	for (i = 0; i < size; i++)
-	{
-		printf("%d", buffer[i]);
-	}
-	printf("\n");
-	for (i = 0; i < 100; i++)
-	{
-		buffer[i] = 0;
-	}
+	for (i = 0; i < 100; i++) buffer[i] = 0;
 }
 
 
