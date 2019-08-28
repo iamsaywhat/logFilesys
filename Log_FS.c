@@ -523,7 +523,6 @@ Log_Fs_Status Log_Fs_FindFile(uint8_t CMD)
 		Log_Fs_FileProperties.SectorNum        = Log_Fs_Info.Struct.OldestFile_SectorNum;
 		Log_Fs_FileProperties.StartSector      = Log_Fs_Info.Struct.OldestFile_Sector;
 		Log_Fs_FileProperties.InitStructState  = FS_INIT_OK;
-		Log_Fs_FileProperties.ReadPosition     = 0;
 
 		// Сбрасываем счетчик просмотренных файлов
 		FileCount = 0;
@@ -536,7 +535,6 @@ Log_Fs_Status Log_Fs_FindFile(uint8_t CMD)
 		Log_Fs_FileProperties.SectorNum        = Log_Fs_Info.Struct.LastFile_SectorNum;
 		Log_Fs_FileProperties.StartSector      = Log_Fs_Info.Struct.LastFile_Sector;
 		Log_Fs_FileProperties.InitStructState  = FS_INIT_OK;
-		Log_Fs_FileProperties.ReadPosition     = 0;
 
 		// Сбрасываем счетчик просмотренных файлов
 		FileCount = Log_Fs_Info.Struct.Files_Num - 1;
@@ -546,7 +544,6 @@ Log_Fs_Status Log_Fs_FindFile(uint8_t CMD)
 	{
 		Log_Fs_FileProperties.ByteSize      = 0;
 		Log_Fs_FileProperties.FileNum       = 0;
-		Log_Fs_FileProperties.ReadPosition  = 0;
 
 		// Переходим к началу следующего файла, отталкиваясь от сектора предыдущего и количества секторов которые он занимал 
 		Log_Fs_FileProperties.StartSector = (Log_Fs_FileProperties.StartSector + Log_Fs_FileProperties.SectorNum) % FS_SECTORS_NUM;
@@ -625,51 +622,6 @@ Log_Fs_Status Log_Fs_FindFile(uint8_t CMD)
 
 
 
-
-/***************************************************************************************************
-	  LogFs_ReadFile - Функция чтения информации из файлов. Должна запускаться только после функции
-	  Log_Fs_FindFile(), поскольку эта функция и позволяет нам определить какой файл будем
-	  читать. То, какой файл будем читать содержится в структуре Log_Fs_FileProperties.
-***************************************************************************************************/
-Log_Fs_Status LogFs_ReadFile(uint8_t* Buffer, uint32_t Size)
-{
-	uint32_t Address;     // Адрес чтения 
-	uint32_t i;           // Счетчик циклов
-
-	// Читать из одного файла можно в несколько обращений
-	// Функция запоминает номер файла и номер байта, на котором чтение при текущем обращении
-	// К фунции остановилось, чтобы при следующем обращении можно было продолжить с этого же места
-	// Таким образом имеется возможность отказаться от буферизации всего файла, а вычитывать его по байтам
-	
-	for (i = 0; i < Size; i++)
-	{
-		// Получаем текущий адрес ячейки для чтения
-		Address = (FS_SECTOR_SIZE * Log_Fs_FileProperties.StartSector + Log_Fs_FileProperties.ReadPosition) % (FS_SECTOR_SIZE * FS_SECTORS_NUM);
-		// Проверим, вдруг адрес указывает на первые 4 байта заголовка сектора
-		if (Address % FS_SECTOR_SIZE == 0)
-		{
-			// Они нам не нужны, поэтому сразу перепрыгиваем на 4 байта вперед
-			Address += 4;
-			// Делаем инкремент количества считанных байт
-			Log_Fs_FileProperties.ReadPosition += 4;
-		}
-		// Читаем 
-		MemoryRead(Address, &Buffer[i], 1);
-		// Байт считали, делаем инкремент
-		Log_Fs_FileProperties.ReadPosition++;
-		// Проверяем был ли файл считан целиком
-		if (Log_Fs_FileProperties.ReadPosition >= (Log_Fs_FileProperties.ByteSize + 4 * Log_Fs_FileProperties.SectorNum))
-		{
-			// Да, поэтому байт-позицию чтения сбрасываем
-			Log_Fs_FileProperties.ReadPosition = 0;
-			// Завершаем цикл
-			return FS_FILE_END;
-		}
-	}
-	return FS_FINE;
-}
-
-
 /***************************************************************************************************
 	   Log_Fs_FindFile_ByNum - Функция осуществляет поиск файла по номеру.
 ***************************************************************************************************/
@@ -710,6 +662,46 @@ Log_Fs_Status Log_Fs_FindFile_ByNum(uint16_t NUM)
 
 
 
+/***************************************************************************************************
+	  LogFs_ReadFile - Функция чтения информации из файлов. Должна запускаться только после функции
+	  Log_Fs_FindFile(), поскольку эта функция и позволяет нам определить какой файл будем
+	  читать. То, какой файл будем читать содержится в структуре Log_Fs_FileProperties.
+***************************************************************************************************/
+Log_Fs_Status LogFs_ReadFile (uint8_t* Buffer, uint32_t ByteNum, uint32_t Size)
+{
+	uint32_t Address;     // Адрес чтения 
+	uint32_t i;           // Счетчик циклов
+	uint32_t Sector;      // Номер сектора от начала файла
+
+	// Проверим корректность параметров, и запретим чтение за пределами файла
+	if (ByteNum + Size > Log_Fs_FileProperties.ByteSize)
+		return FS_ERROR;
+
+	// Определяем к какому сектору файла относится первый читаемый байт
+	Sector = ByteNum / (FS_SECTOR_SIZE - 4);
+
+	// Получаем текущий адрес ячейки для чтения
+	// Сначала адрес нужного сектора с контролем переходов
+	Address = (FS_SECTOR_SIZE * (Log_Fs_FileProperties.StartSector + Sector)) % (FS_SECTOR_SIZE * FS_SECTORS_NUM);
+	// Затем задаем необходимое смещение от начала сектора
+	Address += 4 + (ByteNum % (FS_SECTOR_SIZE - 4));
+	
+	// Начинаем побайтово читать файл
+	for (i = 0; i < Size; i++)
+	{
+		// Читаем байт
+		MemoryRead(Address, &Buffer[i], 1);
+		// Инкрементируем адрес с контролем перехода кольцевого буфера
+		Address = (Address + 1) % (FS_SECTOR_SIZE * FS_SECTORS_NUM);
+		// Проверим, вдруг адрес указывает на первые 4 байта заголовка сектора
+		if (Address % FS_SECTOR_SIZE == 0)
+		{
+			// Они нам не нужны, поэтому сразу перепрыгиваем на 4 байта вперед
+			Address += 4;
+		}
+	}
+	return FS_FINE;
+}
 
 
 

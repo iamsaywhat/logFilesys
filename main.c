@@ -197,31 +197,50 @@ int main()
 	// Тестирование чтения
 	Log_Fs_FindFile(FIRST_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
-	LogFs_ReadFile(buffer, size - 7);
-	LogFs_ReadFile(buffer , 7);
+	LogFs_ReadFile(buffer, 0, size - 7);
+	LogFs_ReadFile(buffer, 0, 7);
 	for (i = 0; i < 100; i++) buffer[i] = 0;
 
 
 	Log_Fs_FindFile(NEXT_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
-	LogFs_ReadFile(buffer, size);
+	LogFs_ReadFile(buffer, 0, size);
 	for (i = 0; i < 100; i++) buffer[i] = 0;
 
 	Log_Fs_FindFile(NEXT_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
-	LogFs_ReadFile(buffer, size);
+	LogFs_ReadFile(buffer, 0, size);
 	for (i = 0; i < 100; i++) buffer[i] = 0;
 
 
 	Log_Fs_FindFile(NEXT_FILE);
 	size = Log_Fs_GetFileProperties(FILE_SIZE);
-	LogFs_ReadFile(buffer, size );
+	LogFs_ReadFile(buffer, 0, size);
 	for (i = 0; i < 100; i++) buffer[i] = 0;
 
 
 	Log_Fs_FindFile_ByNum(8);
-	LogFs_ReadFile(buffer, size);
+	LogFs_ReadFile(buffer, 0, size);
 	for (i = 0; i < 100; i++) buffer[i] = 0;
+
+
+	/////////////////////
+	Log_Fs_FindFile(FIRST_FILE);
+	Log_Fs_FindFile(NEXT_FILE);
+	size = Log_Fs_GetFileProperties(FILE_SIZE);
+	
+	LogFs_ReadFile (buffer, 0, size);
+	for (i = 0; i < 100; i++) buffer[i] = 0;
+
+	LogFs_ReadFile (buffer, 8, 5);
+	for (i = 0; i < 100; i++) buffer[i] = 0;
+
+	LogFs_ReadFile (buffer, 21, 0);
+	for (i = 0; i < 100; i++) buffer[i] = 0;
+
+	LogFs_ReadFile (buffer, size - 1, 1);
+	for (i = 0; i < 100; i++) buffer[i] = 0;
+
 }
 
 
