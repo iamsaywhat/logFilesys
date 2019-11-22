@@ -36,7 +36,7 @@ Log_Fs_FileProperties_Type Log_Fs_FileProperties;
 				FS_FINE - Файл был удачно удален из директории
 				FS_ERROR - Неизвестное форматирование (файловая система имеет внутреннюю ошибку
 ***************************************************************************************************/
-Log_Fs_Status LogFs_DeleteOldestFile(void);
+static Log_Fs_Status LogFs_DeleteOldestFile(void);
 
 
 /***************************************************************************************************
@@ -47,7 +47,7 @@ Log_Fs_Status LogFs_DeleteOldestFile(void);
 	Возвращает:
 				Количество секторов которые занимает файл
 ***************************************************************************************************/
-uint16_t LogFs_GetFile_NumSectors(uint16_t Sector);
+static uint16_t LogFs_GetFile_NumSectors(uint16_t Sector);
 
 
 
@@ -122,7 +122,7 @@ uint16_t LogFs_GetNumCurrentFile(void)
 	LogFs_GetFile_NumSectors - Узнать количество секторов которые занимает файл c началом
 	в секторе с номером Sector
 ***************************************************************************************************/
-uint16_t LogFs_GetFile_NumSectors(uint16_t Sector)
+static uint16_t LogFs_GetFile_NumSectors(uint16_t Sector)
 {
 	uint32_t Address;                       // Вычисляемый адрес чтения
 	uint8_t  buff[4];                       // Буфер для чтения заголовка и номера файла
@@ -284,7 +284,7 @@ Log_Fs_Status LogFs_Info(void)
 	LogFs_DeleteOldestFile - Функция Удаления самого старого файла в директории. Является
 	приватной, ее самостоятельный вызов может привести к ошибке файловой системы.
 ***************************************************************************************************/
-Log_Fs_Status LogFs_DeleteOldestFile(void)
+static Log_Fs_Status LogFs_DeleteOldestFile(void)
 {
 	uint16_t i;             // Счетчик циклов  
 	uint16_t Count;         // Количество секторов занимаемых файлом
