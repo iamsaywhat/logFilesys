@@ -100,9 +100,10 @@ int main()
 	temp = LogFs_getCurrentFileId();
 	LogFs_writeToCurrentFile(buffer, 5);
 
-
 	space = LogFs_freeBytes();
 	space = LogFs_fullSize();
+	LogFs_findFileByNum(0);
+	LogFs_readFile(buffer, 0, 5);
 
 
 	LogFs_initialize();
