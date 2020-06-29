@@ -77,6 +77,8 @@ int main()
 	uint8_t res;
 	uint32_t size;
 	uint16_t temp;
+	LogFs_Status status;
+	uint64_t space;
 
 	TimestampToDate(1203161493);
 	TimestampToDate(1562279506);
@@ -90,12 +92,17 @@ int main()
 	///
 	LogFs_findFileByNum(7);
 
-	LogFs_initialize();
+	status = LogFs_initialize();
+	status = LogFs_check();
 	LogFs_createFile();
 	temp = LogFs_getFileNumber();
 	temp = LogFs_getLastFileId();
 	temp = LogFs_getCurrentFileId();
 	LogFs_writeToCurrentFile(buffer, 5);
+
+
+	space = LogFs_freeBytes();
+	space = LogFs_fullSize();
 
 
 	LogFs_initialize();
