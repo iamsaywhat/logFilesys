@@ -77,7 +77,6 @@ int main()
 	uint8_t res;
 	uint32_t size;
 	uint16_t temp;
-	LogFs_Status status;
 	uint64_t space;
 
 	TimestampToDate(1203161493);
@@ -92,8 +91,8 @@ int main()
 	///
 	LogFs_findFileByNum(7);
 
-	status = LogFs_initialize();
-	status = LogFs_check();
+	LogFs_initialize();
+	LogFs_check();
 	LogFs_createFile();
 	temp = LogFs_getFileNumber();
 	temp = LogFs_getLastFileId();
@@ -123,6 +122,7 @@ int main()
 	temp = LogFs_getCurrentFileId();
 	LogFs_writeToCurrentFile(buffer, 5);
 	LogFs_writeToCurrentFile(buffer, 5);
+	LogFs_findFileByNum(2);
 
 
 	LogFs_initialize();
@@ -248,6 +248,240 @@ int main()
 
 	LogFs_readFile(buffer, size - 1, 1);
 	for (i = 0; i < 100; i++) buffer[i] = 0;
+
+
+	printf("Test started..\n");
+	uint8_t status = 0;
+	char* testText = "System clock selection is performed on startup, however the internal RC 8MHz oscillator is selected";
+	/* Форматирование */
+	printf("Test 1: formating\n ");
+	LogFs_format();
+	for (int i = 0; i < (FS_SECTORS_NUM * FS_SECTOR_SIZE); i++)
+	{
+		if (MEMORY[i] != 0xFF)
+		{
+			printf("LogFs_format(): Memory is not cleared!\n");
+			status = 1;
+			break;
+		}
+	}
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 0)
+	{
+		printf("LogFs_getFileNumber(): After formating file count is not null!\n");
+		status = 1;
+	}
+	if (LogFs_findFile(FIRST_FILE) != FS_ERROR)
+	{
+		printf("LogFs_findFile(FIRST_FILE): did not return FS_ERROR\n");
+		status = 1;
+	}
+	if (LogFs_findFile(NEXT_FILE) != FS_ERROR)
+	{
+		printf("LogFs_findFile(NEXT_FILE): did not return FS_ERROR\n");
+		status = 1;
+	}
+	if (LogFs_findFile(LAST_FILE) != FS_ERROR)
+	{
+		printf("LogFs_findFile(NEXT_FILE): did not return FS_ERROR\n");
+		status = 1;
+	}
+	if(status == 1)
+		printf("FAILED!\n");
+	else
+		printf("PASSED!\n");
+
+
+	/* Creation first file (< 1 sector size) */
+	printf("Test 2: first file (<1 sector size):\n ");
+	status = 0;
+	LogFs_initialize();
+	LogFs_createFile();
+	LogFs_writeToCurrentFile(testText, 5);
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 1)
+	{
+		printf("LogFs_getFileNumber(): file count is not 1!\n");
+		status = 1;
+	}
+	if(LogFs_findFile(FIRST_FILE) == FS_ERROR)
+	{ 
+		printf("LogFs_findFile(FIRST_FILE): file not found!\n");
+		status = 1;
+	}
+	if (LogFs_readFile(buffer, 0, 5) == FS_ERROR)
+	{
+		printf("LogFs_readFile(): fail!\n");
+		status = 1;
+	}
+	for (int i = 0; i < 5; i++)
+	{
+		if (buffer[i] != testText[i])
+		{
+			printf("LogFs_readFile(): data does not match!\n");
+			status = 1;
+			break;
+		}
+	}
+	if (LogFs_getFileProperties(FILE_SIZE) != 5)
+	{
+		printf("LogFs_getFileProperties(FILE_SIZE): file size is incorrect! \n");
+		status = 1;
+	}
+	if (LogFs_getFileProperties(FILE_NUMBER) != 0)
+	{
+		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
+		status = 1;
+	}
+	if (status == 1)
+		printf("FAILED!\n");
+	else
+		printf("PASSED!\n");
+
+
+	/* Creation second file (<2 sector size)*/
+	printf("Test 3: second file (<2 sector size):\n ");
+	status = 0;
+	LogFs_initialize();
+	LogFs_createFile();
+	LogFs_writeToCurrentFile(testText, 10);
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 2)
+	{
+		printf("LogFs_getFileNumber(): file count is not 1!\n");
+		status = 1;
+	}
+	if (LogFs_findFileByNum(1) == FS_ERROR)
+	{
+		printf("LogFs_findFile(FIRST_FILE): file not found!\n");
+		status = 1;
+	}
+	if (LogFs_readFile(buffer, 0, 10) == FS_ERROR)
+	{
+		printf("LogFs_readFile(): fail!\n");
+		status = 1;
+	}
+	for (int i = 0; i < 10; i++)
+	{
+		if (buffer[i] != testText[i])
+		{
+			printf("LogFs_readFile(): data does not match!\n");
+			status = 1;
+			break;
+		}
+	}
+	if (LogFs_getFileProperties(FILE_SIZE) != 10)
+	{
+		printf("LogFs_getFileProperties(FILE_SIZE): file size is incorrect! \n");
+		status = 1;
+	}
+	if (LogFs_getFileProperties(FILE_NUMBER) != 1)
+	{
+		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
+		status = 1;
+	}
+	if (status == 1)
+		printf("FAILED!\n");
+	else
+		printf("PASSED!\n");
+
+	/* Creation third file (=2 sector size) */
+	printf("Test 4: third file (=2 sector size):\n ");
+	status = 0;
+	LogFs_initialize();
+	LogFs_createFile();
+	LogFs_writeToCurrentFile(testText, 12);
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 3)
+	{
+		printf("LogFs_getFileNumber(): file count is not 3!\n");
+		status = 1;
+	}
+	if (LogFs_findFileByNum(LogFs_getFileNumber() - 1) == FS_ERROR)
+	{
+		printf("LogFs_findFile(FIRST_FILE): file not found!\n");
+		status = 1;
+	}
+	if (LogFs_readFile(buffer, 0, 12) == FS_ERROR)
+	{
+		printf("LogFs_readFile(): fail!\n");
+		status = 1;
+	}
+	for (int i = 0; i < 12; i++)
+	{
+		if (buffer[i] != testText[i])
+		{
+			printf("LogFs_readFile(): data does not match!\n");
+			status = 1;
+			break;
+		}
+	}
+	if (LogFs_getFileProperties(FILE_SIZE) != 12)
+	{
+		printf("LogFs_getFileProperties(FILE_SIZE): file size is incorrect! \n");
+		status = 1;
+	}
+	if (LogFs_getFileProperties(FILE_NUMBER) != (LogFs_getFileNumber() - 1))
+	{
+		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
+		status = 1;
+	}
+	if (status == 1)
+		printf("FAILED!\n");
+	else
+		printf("PASSED!\n");
+
+
+	/* Creation fourth file (<4 sector size) */
+	printf("Test 4: fourth file (<4 sector size):\n ");
+	status = 0;
+	LogFs_initialize();
+	LogFs_createFile();
+	LogFs_writeToCurrentFile(testText, 15);
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 4)
+	{
+		printf("LogFs_getFileNumber(): file count is not 4!\n");
+		status = 1;
+	}
+	if (LogFs_findFileByNum(LogFs_getFileNumber() - 1) == FS_ERROR)
+	{
+		printf("LogFs_findFile(FIRST_FILE): file not found!\n");
+		status = 1;
+	}
+	if (LogFs_readFile(buffer, 0, 15) == FS_ERROR)
+	{
+		printf("LogFs_readFile(): fail!\n");
+		status = 1;
+	}
+	for (int i = 0; i < 15; i++)
+	{
+		if (buffer[i] != testText[i])
+		{
+			printf("LogFs_readFile(): data does not match!\n");
+			status = 1;
+			break;
+		}
+	}
+	if (LogFs_getFileProperties(FILE_SIZE) != 15)
+	{
+		printf("LogFs_getFileProperties(FILE_SIZE): file size is incorrect! \n");
+		status = 1;
+	}
+	if (LogFs_getFileProperties(FILE_NUMBER) != (LogFs_getFileNumber() - 1))
+	{
+		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
+		status = 1;
+	}
+	if (status == 1)
+		printf("FAILED!\n");
+	else
+		printf("PASSED!\n");
+
+
+
+	
+
 
 }
 

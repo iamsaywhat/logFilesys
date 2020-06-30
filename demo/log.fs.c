@@ -671,6 +671,11 @@ LogFs_Status LogFs_findFileByNum(uint16_t NUM)
 	uint16_t min_num, max_num;     // Минимальный и максимальный порядковые номера файлов
 	uint16_t i;                    // Счетчик циклов
 
+
+	// Если файлы отсутсвуют, то нечего искать
+	if (LogFs_getFileNumber() == 0)
+		return FS_ERROR;
+
 	// Проверим существует ли такой номер
 	// Посмотрим порядковый номер самого старого файла (номер должен быть самым маленьким)
 	LogFs_findFile(FIRST_FILE);
@@ -678,6 +683,7 @@ LogFs_Status LogFs_findFileByNum(uint16_t NUM)
 	// Посмотрим порядковый номер самого свежего файла (номер должен быть самым большим)
 	LogFs_findFile(LAST_FILE);
 	max_num = LogFs_getFileProperties(FILE_NUMBER);
+
 	// Номер запрашиваемого файла должен принадлжеать данному диапазону, иначе ошибка - файл не найден
 	if (NUM > max_num || NUM < min_num)
 		return FS_ERROR;
