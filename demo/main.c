@@ -478,6 +478,103 @@ int main()
 	else
 		printf("PASSED!\n");
 
+	/* Файл 5 с переходом на 0 сектор и удалением файла */
+	printf("Test 5: file5 - trasition to the 0 sector (< 3 sector size):\n ");
+	status = 0;
+	LogFs_initialize();
+	LogFs_createFile();
+	LogFs_writeToCurrentFile(testText, 17);
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 4)
+	{
+		printf("LogFs_getFileNumber(): file count is not 4!\n");
+		status = 1;
+	}
+	if (LogFs_findFileByNum(4) == FS_ERROR)
+	{
+		printf("LogFs_findFile(FIRST_FILE): file not found!\n");
+		status = 1;
+	}
+	if (LogFs_readFile(buffer, 0, 17) == FS_ERROR)
+	{
+		printf("LogFs_readFile(): fail!\n");
+		status = 1;
+	}
+	for (int i = 0; i < 17; i++)
+	{
+		if (buffer[i] != testText[i])
+		{
+			printf("LogFs_readFile(): data does not match!\n");
+			status = 1;
+			break;
+		}
+	}
+	if (LogFs_getFileProperties(FILE_SIZE) != 17)
+	{
+		printf("LogFs_getFileProperties(FILE_SIZE): file size is incorrect! \n");
+		status = 1;
+	}
+	if (LogFs_getFileProperties(FILE_NUMBER) != 4)
+	{
+		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
+		status = 1;
+	}
+	if (status == 1)
+		printf("FAILED!\n");
+	else
+		printf("PASSED!\n");
+
+
+
+
+	/* Файл 6 - Большой объем одним обращением (до 7 секторов) */
+	printf("Test 5: file5 - Large data, one call (< 3 sector size):\n ");
+	status = 0;
+	LogFs_initialize();
+	LogFs_createFile();
+	LogFs_writeToCurrentFile(testText, 40);
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 2)
+	{
+		printf("LogFs_getFileNumber(): file count is not 4!\n");
+		status = 1;
+	}
+	if (LogFs_findFileByNum(5) == FS_ERROR)
+	{
+		printf("LogFs_findFile(FIRST_FILE): file not found!\n");
+		status = 1;
+	}
+	if (LogFs_readFile(buffer, 0, 40) == FS_ERROR)
+	{
+		printf("LogFs_readFile(): fail!\n");
+		status = 1;
+	}
+	for (int i = 0; i < 40; i++)
+	{
+		if (buffer[i] != testText[i])
+		{
+			printf("LogFs_readFile(): data does not match!\n");
+			status = 1;
+			break;
+		}
+	}
+	if (LogFs_getFileProperties(FILE_SIZE) != 40)
+	{
+		printf("LogFs_getFileProperties(FILE_SIZE): file size is incorrect! \n");
+		status = 1;
+	}
+	if (LogFs_getFileProperties(FILE_NUMBER) != 5)
+	{
+		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
+		status = 1;
+	}
+	if (status == 1)
+		printf("FAILED!\n");
+	else
+		printf("PASSED!\n");
+
+
+
 
 
 	
