@@ -450,6 +450,9 @@ void LogFs_createFile(void)
 	LogFs_info.FreeSectors_Num--;
 	// Файл создан, нужно обновить счетчик файлов
 	LogFs_info.Files_Num++;
+	// После создания нового файла, он становится последним в списке
+	LogFs_info.LastFile_Sector = LogFs_info.CurrentFile_Sector;
+	LogFs_info.LastFile_SectorNum = 1;
 }
 
 
@@ -507,10 +510,9 @@ void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size)
 			                                                              // на заголовок продолжения файла, номер остаётся таким же
 
 			// Если сектор последний - нужно перейти на первый (кольцевой буфер)
-			if (LogFs_info.CurrentFile_Sector < (FS_SECTORS_NUM - 1))
-				LogFs_info.CurrentFile_Sector++;
-			else
-				LogFs_info.CurrentFile_Sector = 0;
+			LogFs_info.CurrentFile_Sector = (++LogFs_info.CurrentFile_Sector) % FS_SECTORS_NUM;
+			// Так же наш самый новый файл (то есть текущий), стал занимать на один сектор больше
+			LogFs_info.LastFile_SectorNum = (++LogFs_info.LastFile_SectorNum) % FS_SECTORS_NUM;
 
 	
 			Address = FS_SECTOR_SIZE * LogFs_info.CurrentFile_Sector;      // Вычисляем адрес для записи (начало нового сектора)
