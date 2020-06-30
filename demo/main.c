@@ -81,174 +81,6 @@ int main()
 
 	TimestampToDate(1203161493);
 	TimestampToDate(1562279506);
-	for (i = 0; i < 15; i++)
-	{
-		buffer[i] = i;
-	}
-
-	LogFs_format();
-
-	///
-	LogFs_findFileByNum(7);
-
-	LogFs_initialize();
-	LogFs_check();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-
-	space = LogFs_freeBytes();
-	space = LogFs_fullSize();
-	LogFs_findFileByNum(0);
-	LogFs_readFile(buffer, 0, 5);
-
-
-	LogFs_initialize();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-
-
-	LogFs_initialize();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_findFileByNum(2);
-
-
-	LogFs_initialize();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-
-	LogFs_initialize();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-
-	///
-	LogFs_initialize();
-	LogFs_findFileByNum(3);
-
-	LogFs_initialize();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-	/////// пересекли границу
-
-	LogFs_initialize();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-
-
-	LogFs_initialize();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-
-	LogFs_initialize();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-	LogFs_writeToCurrentFile(buffer, 5);
-
-	LogFs_initialize();
-	LogFs_createFile();
-	temp = LogFs_getFileNumber();
-	temp = LogFs_getLastFileId();
-	temp = LogFs_getCurrentFileId();
-	LogFs_writeToCurrentFile(buffer, 5);
-
-	LogFs_initialize();
-	LogFs_findFile(FIRST_FILE);
-	while (FS_ALL_FILES_SCROLLS != LogFs_findFile(NEXT_FILE));
-
-
-
-	for (i = 0; i < 100; i++)
-	{
-		buffer[i] = 0;
-	}
-
-
-
-	// Тестирование чтения
-	LogFs_findFile(FIRST_FILE);
-	size = LogFs_getFileProperties(FILE_SIZE);
-	LogFs_readFile(buffer, 0, size - 7);
-	LogFs_readFile(buffer, 0, 7);
-	for (i = 0; i < 100; i++) buffer[i] = 0;
-
-
-	LogFs_findFile(NEXT_FILE);
-	size = LogFs_getFileProperties(FILE_SIZE);
-	LogFs_readFile(buffer, 0, size);
-	for (i = 0; i < 100; i++) buffer[i] = 0;
-
-	LogFs_findFile(NEXT_FILE);
-	size = LogFs_getFileProperties(FILE_SIZE);
-	LogFs_readFile(buffer, 0, size);
-	for (i = 0; i < 100; i++) buffer[i] = 0;
-
-
-	LogFs_findFile(NEXT_FILE);
-	size = LogFs_getFileProperties(FILE_SIZE);
-	LogFs_readFile(buffer, 0, size);
-	for (i = 0; i < 100; i++) buffer[i] = 0;
-
-
-	LogFs_findFile(8);
-	LogFs_readFile(buffer, 0, size);
-	for (i = 0; i < 100; i++) buffer[i] = 0;
-
-
-	/////////////////////
-	LogFs_findFile(FIRST_FILE);
-	LogFs_findFile(NEXT_FILE);
-	size = LogFs_getFileProperties(FILE_SIZE);
-	
-	LogFs_readFile(buffer, 0, size);
-	for (i = 0; i < 100; i++) buffer[i] = 0;
-
-	LogFs_readFile(buffer, 8, 5);
-	for (i = 0; i < 100; i++) buffer[i] = 0;
-
-	LogFs_readFile(buffer, 21, 0);
-	for (i = 0; i < 100; i++) buffer[i] = 0;
-
-	LogFs_readFile(buffer, size - 1, 1);
-	for (i = 0; i < 100; i++) buffer[i] = 0;
-
 
 	printf("Test started..\n");
 	uint8_t status = 0;
@@ -293,7 +125,7 @@ int main()
 
 
 	/* Creation first file (< 1 sector size) */
-	printf("Test 2: first file (<1 sector size):\n ");
+	printf("Test 2: file #1 (<1 sector size):\n ");
 	status = 0;
 	LogFs_initialize();
 	LogFs_createFile();
@@ -339,8 +171,8 @@ int main()
 		printf("PASSED!\n");
 
 
-	/* Creation second file (<2 sector size)*/
-	printf("Test 3: second file (<2 sector size):\n ");
+	/* Creation file #2 (<2 sector size)*/
+	printf("Test 3: file #2 (<2 sector size):\n ");
 	status = 0;
 	LogFs_initialize();
 	LogFs_createFile();
@@ -385,8 +217,8 @@ int main()
 	else
 		printf("PASSED!\n");
 
-	/* Creation third file (=2 sector size) */
-	printf("Test 4: third file (=2 sector size):\n ");
+	/* Creation file #3 (=2 sector size) */
+	printf("Test 4: file #3 (=2 sector size):\n ");
 	status = 0;
 	LogFs_initialize();
 	LogFs_createFile();
@@ -432,8 +264,8 @@ int main()
 		printf("PASSED!\n");
 
 
-	/* Creation fourth file (<4 sector size) */
-	printf("Test 4: fourth file (<4 sector size):\n ");
+	/* Creation file #4 (<4 sector size) */
+	printf("Test 5: file #4 (<4 sector size):\n ");
 	status = 0;
 	LogFs_initialize();
 	LogFs_createFile();
@@ -479,7 +311,7 @@ int main()
 		printf("PASSED!\n");
 
 	/* Файл 5 с переходом на 0 сектор и удалением файла */
-	printf("Test 5: file5 - trasition to the 0 sector (< 3 sector size):\n ");
+	printf("Test 6: file #5 - trasition to the 0 sector (< 3 sector size):\n ");
 	status = 0;
 	LogFs_initialize();
 	LogFs_createFile();
@@ -528,7 +360,7 @@ int main()
 
 
 	/* Файл 6 - Большой объем одним обращением (до 7 секторов) */
-	printf("Test 5: file5 - Large data, one call (< 3 sector size):\n ");
+	printf("Test 7: file #6 - Large data, one call (< 3 sector size):\n ");
 	status = 0;
 	LogFs_initialize();
 	LogFs_createFile();
@@ -536,7 +368,7 @@ int main()
 	LogFs_initialize();
 	if (LogFs_getFileNumber() != 2)
 	{
-		printf("LogFs_getFileNumber(): file count is not 4!\n");
+		printf("LogFs_getFileNumber(): file count is not 2!\n");
 		status = 1;
 	}
 	if (LogFs_findFileByNum(5) == FS_ERROR)
@@ -564,6 +396,56 @@ int main()
 		status = 1;
 	}
 	if (LogFs_getFileProperties(FILE_NUMBER) != 5)
+	{
+		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
+		status = 1;
+	}
+	if (status == 1)
+		printf("FAILED!\n");
+	else
+		printf("PASSED!\n");
+
+
+	/* Файл 7 - Текущий файл слишком большой (> чем носитель)
+     * Ожидаемое поведение: перезапись всех других файлов, а когда места больше не останется
+	 * ограничит сам себя, запретит запись, дабы не сломать разметку
+	 */
+	printf("Test 8: file #7 - File >> flash chip:\n ");
+	status = 0;
+	LogFs_initialize();
+	LogFs_createFile();
+	LogFs_writeToCurrentFile(testText, 100);
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 1)
+	{
+		printf("LogFs_getFileNumber(): file count is not 1!\n");
+		status = 1;
+	}
+	if (LogFs_findFileByNum(6) == FS_ERROR)
+	{
+		printf("LogFs_findFile(FIRST_FILE): file not found!\n");
+		status = 1;
+	}
+	if (LogFs_readFile(buffer, 0, 60) == FS_ERROR)
+	{
+		printf("LogFs_readFile(): fail!\n");
+		status = 1;
+	}
+	for (int i = 0; i < 60; i++)
+	{
+		if (buffer[i] != testText[i])
+		{
+			printf("LogFs_readFile(): data does not match!\n");
+			status = 1;
+			break;
+		}
+	}
+	if (LogFs_getFileProperties(FILE_SIZE) != 60)
+	{
+		printf("LogFs_getFileProperties(FILE_SIZE): file size is incorrect! \n");
+		status = 1;
+	}
+	if (LogFs_getFileProperties(FILE_NUMBER) != 6)
 	{
 		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
 		status = 1;

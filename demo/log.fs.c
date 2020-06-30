@@ -126,26 +126,27 @@ static uint16_t LogFs_getNumberSectorsFile(uint16_t Sector)
 	uint8_t  buff[LAYOUT_SIZE];             // Буфер для чтения заголовка и номера файла
 	uint16_t NumSectors = 1;                // Число секторов для файла по-умолчанию
 	uint16_t i;                             // Счетчик циклов
-	uint16_t SECT = Sector;                 // Сектор, где расположено начало файла
+	uint16_t _sector = Sector;              // Сектор, где расположено начало файла
 
-	for (i = 0; i < LAYOUT_SIZE; i++) buff[i] = 0;
+	for (i = 0; i < LAYOUT_SIZE; i++) 
+		buff[i] = 0;
 
-	for (i = 1; i < FS_SECTORS_NUM; i++)
+	for (i = 0; i < FS_SECTORS_NUM; i++)
 	{
 		// Так как файловая система реализована по типу кольцевого буфера,
 		// необходимо осуществлять переходы от старшего сектора к нулевому непрерывно
 		// Чего и добиваемся этим условием
-		if (SECT + i >= FS_SECTORS_NUM) SECT = 0;
-		else SECT++;
+		_sector = (++_sector) % FS_SECTORS_NUM;
 
 		// Теперь вычисляем адрес сектора идущим следом за тем, который был передан аргументом
-		Address = FS_SECTOR_SIZE * SECT;
-		readMemory(Address, buff, 4);
+		Address = FS_SECTOR_SIZE * _sector;
+		readMemory(Address, buff, LAYOUT_SIZE);
 		// Ожидаем находить заголовки продолжения файла
 		// Любой другой будет говорить о том, что файл кончился
 		if (*(uint16_t*)(buff) == FILE_CONTINUATION)
 			NumSectors++;
-		else break;
+		else 
+			break;
 	}
 
 	return NumSectors;
@@ -492,18 +493,15 @@ void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size)
 			// Нет, нужно освободить место, удалив самый старый из имеющихся файлов, кроме случаев, когда он единственный
 			LogFs_deleteOldestFile();
 		}
-		if (LogFs_info.Files_Num <= 1)
-		{
-			writeMemory(Address, &Buffer[i], LogFs_freeBytes());
-			return;
-		}
-
 	}
 
 	// Будем писать побайтово, так как нужен контроль над переходом на новый сектор
 	// Там может быть, например, не пусто 
 	for (i = 0; i < Size; i++)
 	{
+		if (LogFs_info.Files_Num <= 1 && LogFs_freeBytes() <= 0) 
+			return;
+
 		// Определяем адрес места записи
 		Address = FS_SECTOR_SIZE * LogFs_info.CurrentFile_Sector + LogFs_info.CurrentWritePosition;
 
