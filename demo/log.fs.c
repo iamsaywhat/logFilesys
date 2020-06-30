@@ -131,6 +131,12 @@ static uint16_t LogFs_getNumberSectorsFile(uint16_t Sector)
 	for (i = 0; i < LAYOUT_SIZE; i++) 
 		buff[i] = 0;
 
+
+	Address = FS_SECTOR_SIZE * Sector;
+	readMemory(Address, buff, LAYOUT_SIZE);
+	if (*(uint16_t*)(buff) != FILE_EXIST_HANDLER)
+		return 0;
+
 	for (i = 0; i < FS_SECTORS_NUM; i++)
 	{
 		// Так как файловая система реализована по типу кольцевого буфера,
@@ -203,7 +209,8 @@ LogFs_Status LogFs_initialize(void)
 	uint32_t   OldestFileNum = 0xFFFFFFFF;        // Номер самого старого файла
 	uint8_t    first_step_flag = 1;               // Флаг, используется для определения свободного места для записи
 
-	for (i = 0; i < LAYOUT_SIZE; i++) buff[i] = 0;
+	for (i = 0; i < LAYOUT_SIZE; i++) 
+		buff[i] = 0;
 
 	// Инициализируем структуру с информацией о файловой системе
 	LogFs_info.Files_Num = 0;
@@ -255,25 +262,22 @@ LogFs_Status LogFs_initialize(void)
 			LogFs_info.FreeSectors_Num--;
 		}
 		// Тогда здесь должно быть пусто
-		else if (*(uint16_t*)(buff) == FREE_SPACE_HANDLER)
-		{
-			// Если попали сюда, значит текущий сектор будет пустым
-			if (first_step_flag)
-			{
-				// Необходимо определиться со свободным местом для записи
-				// Фиксируем первый попавшийся при анализе номер свободного сектора
-				// Как место откуда начнём писать создаваемые файлы
-				LogFs_info.CurrentFile_Sector = i;
-			}
-			// Этим гарантируем, что инструкция выше выполнится единственный раз
-			first_step_flag = 0;
-		}
-		// Иначе файловая система повреждена
-		else return FS_ERROR;
+		else if (*(uint16_t*)(buff) != FREE_SPACE_HANDLER)
+			return FS_ERROR;
 	}
 	// Дополнительно определим размеры в секторах файлов (самого старого и самого свежего)
 	LogFs_info.LastFile_SectorNum = LogFs_getNumberSectorsFile(LogFs_info.LastFile_Sector);
 	LogFs_info.OldestFile_SectorNum = LogFs_getNumberSectorsFile(LogFs_info.OldestFile_Sector);
+
+	// Определим куда поставить указатель на свободное место
+	// Вычисляем адрес сектора
+	Address = FS_SECTOR_SIZE * ((LogFs_info.LastFile_Sector + LogFs_info.LastFile_SectorNum) % FS_SECTORS_NUM);
+	// Читаем первые 4 байта сектора
+	readMemory(Address, buff, LAYOUT_SIZE);
+	if (*(uint16_t*)(buff) == FREE_SPACE_HANDLER)
+		LogFs_info.CurrentFile_Sector = (LogFs_info.LastFile_Sector + LogFs_info.LastFile_SectorNum) % FS_SECTORS_NUM;
+	else
+		return FS_ERROR;
 
 	// Информация о диске получена, возвращаем успех			
 	return FS_FINE;
@@ -401,7 +405,8 @@ void LogFs_createFile(void)
 	uint8_t  buff[LAYOUT_SIZE];           // Буфер для чтения заголовка и номера файла
 	uint16_t i;                           // Счетчик циклов
 
-	for (i = 0; i < LAYOUT_SIZE; i++) buff[i] = 0;
+	for (i = 0; i < LAYOUT_SIZE; i++) 
+		buff[i] = 0;
 
 	// Чтобы узнать порядковый номер создаваемого файла
 	// Воспользуемся информацией о последнем созданном файле
@@ -471,34 +476,18 @@ void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size)
 		uint32_t currentSectorFreeSpace = (FS_SECTOR_SIZE - LogFs_info.CurrentWritePosition);
 		uint16_t needFreeSector = (0.5 + ((double)(Size - currentSectorFreeSpace) / (FS_SECTOR_SIZE - LAYOUT_SIZE)));
 
-
-
-		//// Посмотрим имеются ли свободные сектора
-		//if (LogFs_info.FreeSectors_Num < needFreeSector)
-		//{
-		//	// Нет, нужно освободить место, удалив самый старый из имеющихся файлов, кроме случаев, когда он единственный
-		//	if (LogFs_info.Files_Num > 1)
-		//		LogFs_deleteOldestFile();
-		//	else
-		//	{
-		//		writeMemory(Address, &Buffer[i], LogFs_freeBytes());
-		//		return;
-		//	}
-		//}
-
-
 		// Посмотрим имеются ли свободные сектора
 		while (LogFs_info.FreeSectors_Num < needFreeSector && LogFs_info.Files_Num > 1)
-		{
 			// Нет, нужно освободить место, удалив самый старый из имеющихся файлов, кроме случаев, когда он единственный
 			LogFs_deleteOldestFile();
-		}
 	}
 
 	// Будем писать побайтово, так как нужен контроль над переходом на новый сектор
 	// Там может быть, например, не пусто 
 	for (i = 0; i < Size; i++)
 	{
+		/* Здесь ограничение на запись: если файл единственный удалять больше нечего, 
+		 * и место закончилось, то просто брокируем запись и выходим */
 		if (LogFs_info.Files_Num <= 1 && LogFs_freeBytes() <= 0) 
 			return;
 

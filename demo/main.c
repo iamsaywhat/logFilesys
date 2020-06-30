@@ -82,7 +82,7 @@ int main()
 	TimestampToDate(1203161493);
 	TimestampToDate(1562279506);
 
-	printf("Test started..\n");
+	printf("Test started..\n\n");
 	uint8_t status = 0;
 	char* testText = "System clock selection is performed on startup, however the internal RC 8MHz oscillator is selected";
 	/* Форматирование */
@@ -118,10 +118,10 @@ int main()
 		printf("LogFs_findFile(NEXT_FILE): did not return FS_ERROR\n");
 		status = 1;
 	}
-	if(status == 1)
-		printf("FAILED!\n");
+	if (status == 1)
+		printf("  FAILED!\n");
 	else
-		printf("PASSED!\n");
+		printf("  PASSED!\n");
 
 
 	/* Creation first file (< 1 sector size) */
@@ -166,9 +166,9 @@ int main()
 		status = 1;
 	}
 	if (status == 1)
-		printf("FAILED!\n");
+		printf("  FAILED!\n");
 	else
-		printf("PASSED!\n");
+		printf("  PASSED!\n");
 
 
 	/* Creation file #2 (<2 sector size)*/
@@ -213,9 +213,9 @@ int main()
 		status = 1;
 	}
 	if (status == 1)
-		printf("FAILED!\n");
+		printf("  FAILED!\n");
 	else
-		printf("PASSED!\n");
+		printf("  PASSED!\n");
 
 	/* Creation file #3 (=2 sector size) */
 	printf("Test 4: file #3 (=2 sector size):\n ");
@@ -259,9 +259,9 @@ int main()
 		status = 1;
 	}
 	if (status == 1)
-		printf("FAILED!\n");
+		printf("  FAILED!\n");
 	else
-		printf("PASSED!\n");
+		printf("  PASSED!\n");
 
 
 	/* Creation file #4 (<4 sector size) */
@@ -306,9 +306,9 @@ int main()
 		status = 1;
 	}
 	if (status == 1)
-		printf("FAILED!\n");
+		printf("  FAILED!\n");
 	else
-		printf("PASSED!\n");
+		printf("  PASSED!\n");
 
 	/* Файл 5 с переходом на 0 сектор и удалением файла */
 	printf("Test 6: file #5 - trasition to the 0 sector (< 3 sector size):\n ");
@@ -352,9 +352,9 @@ int main()
 		status = 1;
 	}
 	if (status == 1)
-		printf("FAILED!\n");
+		printf("  FAILED!\n");
 	else
-		printf("PASSED!\n");
+		printf("  PASSED!\n");
 
 
 
@@ -401,9 +401,9 @@ int main()
 		status = 1;
 	}
 	if (status == 1)
-		printf("FAILED!\n");
+		printf("  FAILED!\n");
 	else
-		printf("PASSED!\n");
+		printf("  PASSED!\n");
 
 
 	/* Файл 7 - Текущий файл слишком большой (> чем носитель)
@@ -451,16 +451,107 @@ int main()
 		status = 1;
 	}
 	if (status == 1)
-		printf("FAILED!\n");
+		printf("  FAILED!\n");
 	else
-		printf("PASSED!\n");
+		printf("  PASSED!\n");
 
 
 
+	/* Файл 8 - Текущий файл слишком большой (> чем носитель)
+	 * Ожидаемое поведение: перезапись всех других файлов, а когда места больше не останется
+	 * ограничит сам себя, запретит запись, дабы не сломать разметку
+     */
+	printf("Test 9: file #8 - Flash chip is full, create new file:\n ");
+	status = 0;
+	LogFs_initialize();
+	LogFs_createFile();
+	LogFs_writeToCurrentFile(testText, 6);
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 1)
+	{
+		printf("LogFs_getFileNumber(): file count is not 1!\n");
+		status = 1;
+	}
+	if (LogFs_findFileByNum(7) == FS_ERROR)
+	{
+		printf("LogFs_findFile(FIRST_FILE): file not found!\n");
+		status = 1;
+	}
+	if (LogFs_readFile(buffer, 0, 6) == FS_ERROR)
+	{
+		printf("LogFs_readFile(): fail!\n");
+		status = 1;
+	}
+	for (int i = 0; i < 6; i++)
+	{
+		if (buffer[i] != testText[i])
+		{
+			printf("LogFs_readFile(): data does not match!\n");
+			status = 1;
+			break;
+		}
+	}
+	if (LogFs_getFileProperties(FILE_SIZE) != 6)
+	{
+		printf("LogFs_getFileProperties(FILE_SIZE): file size is incorrect! \n");
+		status = 1;
+	}
+	if (LogFs_getFileProperties(FILE_NUMBER) != 7)
+	{
+		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
+		status = 1;
+	}
+	if (status == 1)
+		printf("  FAILED!\n");
+	else
+		printf("  PASSED!\n");
 
 
-	
-
+	/* Creation file #8 (<4 sector size) */
+	printf("Test 9: file #8 (<4 sector size):\n ");
+	status = 0;
+	LogFs_initialize();
+	LogFs_createFile();
+	LogFs_writeToCurrentFile(testText, 15);
+	LogFs_initialize();
+	if (LogFs_getFileNumber() != 2)
+	{
+		printf("LogFs_getFileNumber(): file count is not 4!\n");
+		status = 1;
+	}
+	if (LogFs_findFileByNum(8) == FS_ERROR)
+	{
+		printf("LogFs_findFile(FIRST_FILE): file not found!\n");
+		status = 1;
+	}
+	if (LogFs_readFile(buffer, 0, 15) == FS_ERROR)
+	{
+		printf("LogFs_readFile(): fail!\n");
+		status = 1;
+	}
+	for (int i = 0; i < 15; i++)
+	{
+		if (buffer[i] != testText[i])
+		{
+			printf("LogFs_readFile(): data does not match!\n");
+			status = 1;
+			break;
+		}
+	}
+	if (LogFs_getFileProperties(FILE_SIZE) != 15)
+	{
+		printf("LogFs_getFileProperties(FILE_SIZE): file size is incorrect! \n");
+		status = 1;
+	}
+	if (LogFs_getFileProperties(FILE_NUMBER) != 8)
+	{
+		printf("LogFs_getFileProperties(FILE_NUMBER): file number is incorrect! \n");
+		status = 1;
+	}
+	if (status == 1)
+		printf("  FAILED!\n");
+	else
+		printf("  PASSED!\n");
 
 }
 
