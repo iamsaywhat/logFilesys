@@ -525,8 +525,11 @@ void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size)
 		}
 
 		// Пишем в файл, и делаем инкремент смещения от начала сектора
-		writeMemory(Address, &Buffer[i], 1);
-		LogFs_info.CurrentWritePosition++;
+		if (Buffer[i] != 0xFF)
+		{
+			writeMemory(Address, &Buffer[i], 1);
+			LogFs_info.CurrentWritePosition++;
+		}
 	}
 }
 

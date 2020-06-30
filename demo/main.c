@@ -74,10 +74,8 @@ int main()
 	int i = 0;
 	uint8_t flag = 0;
 	uint16_t count = 0;
-	uint8_t res;
 	uint32_t size;
-	uint16_t temp;
-	uint64_t space;
+
 
 	TimestampToDate(1203161493);
 	TimestampToDate(1562279506);
