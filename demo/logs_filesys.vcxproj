@@ -153,11 +153,13 @@
   <ItemGroup>
     <ClCompile Include="log.fs.c" />
     <ClCompile Include="log.fs.platformdepend.c" />
+    <ClCompile Include="log.fs.tests.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="log.fs.platformdepend.h" />
     <ClInclude Include="log.fs.h" />
+    <ClInclude Include="log.fs.tests.h" />
     <ClInclude Include="stdint.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

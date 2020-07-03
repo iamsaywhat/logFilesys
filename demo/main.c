@@ -1,10 +1,10 @@
 ﻿#include <stdio.h>
 #include "log.fs.h"
 #include "log.fs.platformdepend.h"
+#include "log.fs.tests.h"
 
 
-uint8_t MEMORY[FS_SECTORS_NUM * FS_SECTOR_SIZE];
-
+extern uint8_t MEMORY[FS_SECTORS_NUM * FS_SECTOR_SIZE];
 
 void TimestampToDate(long timestamp)
 {
@@ -83,44 +83,8 @@ int main()
 	printf("Test started..\n\n");
 	uint8_t status = 0;
 	char* testText = "System clock selection is performed on startup, however the internal RC 8MHz oscillator is selected";
-	/* Форматирование */
-	printf("Test 1: formating\n ");
-	LogFs_format();
-	for (int i = 0; i < (FS_SECTORS_NUM * FS_SECTOR_SIZE); i++)
-	{
-		if (MEMORY[i] != 0xFF)
-		{
-			printf("LogFs_format(): Memory is not cleared!\n");
-			status = 1;
-			break;
-		}
-	}
-	LogFs_initialize();
-	if (LogFs_getFileNumber() != 0)
-	{
-		printf("LogFs_getFileNumber(): After formating file count is not null!\n");
-		status = 1;
-	}
-	if (LogFs_findFile(FIRST_FILE) != FS_ERROR)
-	{
-		printf("LogFs_findFile(FIRST_FILE): did not return FS_ERROR\n");
-		status = 1;
-	}
-	if (LogFs_findFile(NEXT_FILE) != FS_ERROR)
-	{
-		printf("LogFs_findFile(NEXT_FILE): did not return FS_ERROR\n");
-		status = 1;
-	}
-	if (LogFs_findFile(LAST_FILE) != FS_ERROR)
-	{
-		printf("LogFs_findFile(NEXT_FILE): did not return FS_ERROR\n");
-		status = 1;
-	}
-	if (status == 1)
-		printf("  FAILED!\n");
-	else
-		printf("  PASSED!\n");
 
+	LogFs_format();
 
 	/* Creation first file (< 1 sector size) */
 	printf("Test 2: file #1 (<1 sector size):\n ");
@@ -665,6 +629,8 @@ int main()
 		printf("  PASSED!\n");
 
 
+	LogFs_plarformdependTest();
+	LogFs_formatTest();
 }
 
 
