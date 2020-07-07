@@ -9,5 +9,6 @@ typedef enum{
 
 LogFsTestStatus LogFs_plarformdependTest(void);
 LogFsTestStatus LogFs_formatTest(void);
+LogFsTestStatus LogFs_rewriteTest(int cycles, int fileSize);
 
 #endif

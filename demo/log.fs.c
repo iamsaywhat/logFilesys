@@ -269,6 +269,7 @@ LogFs_Status LogFs_initialize(void)
 	LogFs_info.LastFile_SectorNum = LogFs_getNumberSectorsFile(LogFs_info.LastFile_Sector);
 	LogFs_info.OldestFile_SectorNum = LogFs_getNumberSectorsFile(LogFs_info.OldestFile_Sector);
 
+	
 	// Определим куда поставить указатель на свободное место
 	// Вычисляем адрес сектора
 	Address = FS_SECTOR_SIZE * ((LogFs_info.LastFile_Sector + LogFs_info.LastFile_SectorNum) % FS_SECTORS_NUM);
