@@ -148,7 +148,7 @@ LogFsTestStatus LogFs_formatTest(void)
 		printf(" *  Function \"LogFs_readFile\" didn't return error at LAST_FILE iterator!\n");
 		status = FAILED;
 	}
-	if (LogFs_fullSize() != (FS_SECTORS_NUM * FS_SECTOR_SIZE))
+	if (LogFs_fullSize() != (FS_SECTORS_NUM * (FS_SECTOR_SIZE - LAYOUT_SIZE)))
 	{
 		printf(" *  Flash size calculated incorrectly!\n");
 		status = FAILED;

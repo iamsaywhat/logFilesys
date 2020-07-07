@@ -329,8 +329,11 @@ uint64_t LogFs_fullSize(void)
 ***************************************************************************************************/
 uint64_t LogFs_freeBytes(void)
 {
-	return ((uint64_t)LogFs_info.FreeSectors_Num * (uint64_t)(FS_SECTOR_SIZE - LAYOUT_SIZE) +
-		    (FS_SECTOR_SIZE - LogFs_info.CurrentWritePosition));
+	uint64_t size;
+	size = ((uint64_t)LogFs_info.FreeSectors_Num * (uint64_t)(FS_SECTOR_SIZE - LAYOUT_SIZE));
+	if(LogFs_info.CurrentWritePosition > 0)
+		size+=(FS_SECTOR_SIZE - LogFs_info.CurrentWritePosition);
+	return size;
 }
 
 
