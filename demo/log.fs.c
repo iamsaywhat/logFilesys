@@ -21,7 +21,7 @@ struct {
 	uint16_t lastFileSectors;       // Количество секторов, которые занимает последний созданный файл
 	uint16_t firstFileBegin;        // Самый старый файл на диске
 	uint16_t firstFileSectors;      // Количество секторов, которые занимает самый старый созданный файл
-	uint16_t currentFileBegin;      // Свободный сектор, где можно создать новый файл
+	uint16_t currentFileSector;     // Свободный сектор, где можно создать новый файл
 	uint32_t cursorPosition;        // Позиция в файле для записи
 	LogFs_Status state;
 } core;
@@ -132,7 +132,7 @@ uint16_t LogFs_getCurrentFileId(void)
 		buffer[i] = 0;
 
 	// Определяем стартовый адрес расположения последнего созданного файла
-	address = FS_SECTOR_SIZE * core.currentFileBegin;
+	address = FS_SECTOR_SIZE * core.currentFileSector;
 	// Читаем залоговок (2 байта) и номер файла (2 байта)
 	readMemory(address, buffer, HANDLER_SIZE);
 
@@ -245,7 +245,7 @@ LogFs_Status LogFs_initialize(void)
 	core.lastFileSectors = 0;
 	core.firstFileBegin = 0;
 	core.firstFileSectors = 0;
-	core.currentFileBegin = 0;
+	core.currentFileSector = 0;
 	core.cursorPosition = 0;
 	core.state = FS_NOT_INIT;
 
@@ -370,19 +370,19 @@ uint64_t LogFs_freeBytes(void)
 static LogFs_Status LogFs_deleteOldestFile(void)
 {
 	uint16_t i;                       // Счетчик циклов  
-	uint16_t Count;                   // Количество секторов занимаемых файлом
+	uint16_t count;                   // Количество секторов занимаемых файлом
 	uint32_t address;                 // Вычисляемый адрес чтения/записи
-	uint32_t Sector;                  // Номер сектора
+	uint32_t sector;                  // Номер сектора
 	uint8_t  buffer[HANDLER_SIZE];    // Буфер для чтения загловка и номера сектора
 
 	for (i = 0; i < HANDLER_SIZE; i++)
 		buffer[i] = 0;
 
 	// Определяем сколько секторов занимает файл
-	Count = LogFs_getNumberSectorsFile(core.firstFileBegin);
+	count = LogFs_getNumberSectorsFile(core.firstFileBegin);
 
 	// Стираем сектора, которые занимает самый старый файл
-	for (i = 0; i < Count; i++)
+	for (i = 0; i < count; i++)
 	{
 		// Определяем адреса секторов, в которых он расположен
 		address = FS_SECTOR_SIZE * (core.firstFileBegin + i);
@@ -395,7 +395,7 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 		eraseSector(address);
 	}
 	// Обновляем информацию о свободных секторах - теперь их Count штук
-	core.freeSectors += Count;
+	core.freeSectors += count;
 	// Декрементируем счетчик файлов
 	core.files--;
 
@@ -403,15 +403,15 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 	// Теперь самым старым файлом в директории будет файл с порядковым номером OldestFile_SectorNum + 1
 	// Но необходимо найти начало этого файла
 	// Делаем шаг вперед на Count секторов (Count - количество секторов на которых располагался ныне удалённый файл) и смотрим заголовок и номер файла
-	Sector = (core.firstFileBegin + Count) % FS_SECTORS_NUM;
-	address = FS_SECTOR_SIZE * Sector;
+	sector = (core.firstFileBegin + count) % FS_SECTORS_NUM;
+	address = FS_SECTOR_SIZE * sector;
 	readMemory(address, buffer, HANDLER_SIZE);
 	// Если все в порядке, то здесь должен быть заголовок начала следующего файла
 	if (*(uint16_t*)(buffer) != FILE_EXIST_HANDLER)
 		return FS_ERROR; // Если нет - файловая система имеет ошибку и завершаем
 	
 	// Фиксируем сектор нового "старого" файла
-	core.firstFileBegin = Sector;
+	core.firstFileBegin = sector;
 
 	// Теперь необходимо определить сколько секторов занимает новый "старый" файл
 	core.firstFileSectors = LogFs_getNumberSectorsFile(core.firstFileBegin);
@@ -468,15 +468,15 @@ void LogFs_createFile(void)
 	{
 		// Попав сюда, необходимо освободить сектор(а) с самым старым файлом
 		// На его месте будет создан новый файл, поэтому сразу фиксируем сектор старого файла, как текущий рабочий
-		core.currentFileBegin = core.firstFileBegin;
+		core.currentFileSector = core.firstFileBegin;
 		// И стираем сектора со старым файлом
 		LogFs_deleteOldestFile();
 	}
 	else // Если свободные сектора есть, то берем сектор сразу за последним
-		core.currentFileBegin = (core.lastFileBegin + core.lastFileSectors) % FS_SECTORS_NUM;
+		core.currentFileSector = (core.lastFileBegin + core.lastFileSectors) % FS_SECTORS_NUM;
 
 	// Создаем файл - Размещаем заголовок и номер на секторе диска
-	address = FS_SECTOR_SIZE * core.currentFileBegin;
+	address = FS_SECTOR_SIZE * core.currentFileSector;
 	// Записываем заголовок в файл
 	writeMemory(address, buffer, HANDLER_SIZE);
 	// Смещаем указатель для последующей записи на HANDLER_SIZE байт (в каждом секторе первые HANDLER_SIZE байт - резерв файловой системы)
@@ -487,7 +487,7 @@ void LogFs_createFile(void)
 	core.files++;
 	core.state = FS_FILE_OPEN;
 	// После создания нового файла, он становится последним в списке
-	core.lastFileBegin = core.currentFileBegin;
+	core.lastFileBegin = core.currentFileSector;
 	core.lastFileSectors = 1;
 }
 
@@ -510,7 +510,7 @@ void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size)
 		_buffer[i] = 0;
 
 	// Определяем адрес для начала записи по выделенному сектору и смещению от его начала "CurrentWritePosition"
-	address = FS_SECTOR_SIZE * core.currentFileBegin + core.cursorPosition;
+	address = FS_SECTOR_SIZE * core.currentFileSector + core.cursorPosition;
 
 	// Проверяем хватит ли нам места в текущем секторе
 	if ((core.cursorPosition + size) >= FS_SECTOR_SIZE)
@@ -535,7 +535,7 @@ void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size)
 			return;
 
 		// Определяем адрес места записи
-		address = FS_SECTOR_SIZE * core.currentFileBegin + core.cursorPosition;
+		address = FS_SECTOR_SIZE * core.currentFileSector + core.cursorPosition;
 
 		// Условие для контроля перехода между секторами
 		// Определяем границу перехода по позиции в секторе, если она равна размеру сектора, это и есть граница
@@ -544,21 +544,21 @@ void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size)
 			/* Попали на новый сектор, необходимо объявить о продолжении файла, создав в следующем секторе 
 			 * соответствующий заголовок и дублировать номер файла, для чего возвращаемся к началу текущего сектора,
 			 * чтобы клонировать его разметку */
-			address = FS_SECTOR_SIZE * core.currentFileBegin;   // Узнаем номер текущего файла в каталоге
+			address = FS_SECTOR_SIZE * core.currentFileSector;   // Узнаем номер текущего файла в каталоге
 			readMemory(address, _buffer, HANDLER_SIZE);         // Читаем первые HANDLER_SIZE байт разметки
 			*(uint16_t*)(_buffer) = FILE_CONTINUATION;          // Информацию получили, теперь подменим заголовок 
 			                                                    // на заголовок продолжения файла, номер остаётся таким же
 			// Если сектор последний - нужно перейти на первый (кольцевой буфер)
-			core.currentFileBegin = (++core.currentFileBegin) % FS_SECTORS_NUM;
+			core.currentFileSector = (++core.currentFileSector) % FS_SECTORS_NUM;
 			// Так же наш самый новый файл (то есть текущий), стал занимать на один сектор больше
 			core.lastFileSectors = (++core.lastFileSectors) % FS_SECTORS_NUM;
 
-			address = FS_SECTOR_SIZE * core.currentFileBegin;  // Вычисляем адрес для записи (начало нового сектора)
+			address = FS_SECTOR_SIZE * core.currentFileSector;  // Вычисляем адрес для записи (начало нового сектора)
 			writeMemory(address, _buffer, HANDLER_SIZE);       // Размечаем этот сектор как продолжение нашего файла
 			core.freeSectors--;                                // Декрементируем кол-во свободных секторов
 			core.cursorPosition = HANDLER_SIZE;                // Задаем смещение на размер заголовка и номера от начала нового сектора
 			//Вычисляем адрес для записи
-			address = FS_SECTOR_SIZE * core.currentFileBegin + core.cursorPosition;
+			address = FS_SECTOR_SIZE * core.currentFileSector + core.cursorPosition;
 		    // Теперь все готово к записи
 		}
 
