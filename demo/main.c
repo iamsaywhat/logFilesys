@@ -631,7 +631,7 @@ int main()
 
 	LogFs_plarformdependTest();
 	LogFs_formatTest();
-	LogFs_rewriteTest(5,  3 * (FS_SECTOR_SIZE - LAYOUT_SIZE));
+	LogFs_rewriteTest(5,  3 * (FS_SECTOR_SIZE - HANDLER_SIZE));
 }
 
 

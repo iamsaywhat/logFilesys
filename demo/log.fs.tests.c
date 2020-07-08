@@ -148,12 +148,12 @@ LogFsTestStatus LogFs_formatTest(void)
 		printf(" *  Function \"LogFs_readFile\" didn't return error at LAST_FILE iterator!\n");
 		status = FAILED;
 	}
-	if (LogFs_fullSize() != (FS_SECTORS_NUM * (FS_SECTOR_SIZE - LAYOUT_SIZE)))
+	if (LogFs_fullSize() != (FS_SECTORS_NUM * (FS_SECTOR_SIZE - HANDLER_SIZE)))
 	{
 		printf(" *  Flash size calculated incorrectly!\n");
 		status = FAILED;
 	}
-	if (LogFs_freeBytes() != (FS_SECTORS_NUM * (FS_SECTOR_SIZE- LAYOUT_SIZE)))
+	if (LogFs_freeBytes() != (FS_SECTORS_NUM * (FS_SECTOR_SIZE- HANDLER_SIZE)))
 	{
 		printf(" *  Flash free size calculated incorrectly!\n");
 		status = FAILED;
@@ -183,28 +183,28 @@ LogFsTestStatus LogFs_cycleRewriteTest(int cycles)
 			if (action == 0)
 			{
 				LogFs_createFile();
-				LogFs_writeToCurrentFile(text, 0.5*(FS_SECTOR_SIZE-LAYOUT_SIZE));
+				LogFs_writeToCurrentFile(text, 0.5*(FS_SECTOR_SIZE - HANDLER_SIZE));
 				sectors += 1;
 				files++;
 			}
 			else if (action == 1)
 			{
 				LogFs_createFile();
-				LogFs_writeToCurrentFile(text, (FS_SECTOR_SIZE-LAYOUT_SIZE));
+				LogFs_writeToCurrentFile(text, (FS_SECTOR_SIZE - HANDLER_SIZE));
 				sectors += 1;
 				files++;
 			}
 			else if (action == 2)
 			{
 				LogFs_createFile();
-				LogFs_writeToCurrentFile(text, 1.5*(FS_SECTOR_SIZE - LAYOUT_SIZE));
+				LogFs_writeToCurrentFile(text, 1.5*(FS_SECTOR_SIZE - HANDLER_SIZE));
 				sectors += 2;	
 				files++;
 			}
 			else if (action == 3)
 			{
 				LogFs_createFile();
-				LogFs_writeToCurrentFile(text, 3.5*(FS_SECTOR_SIZE - LAYOUT_SIZE));
+				LogFs_writeToCurrentFile(text, 3.5*(FS_SECTOR_SIZE - HANDLER_SIZE));
 				sectors += 4;
 				files++;
 			}
@@ -246,7 +246,7 @@ LogFsTestStatus LogFs_rewriteTest(int cycles, int fileSize)
 		printf("  * Initialization failed!\n");
 		status = FAILED;
 	}
-	int fileSectorSize = (int)(0.5 + ((double)fileSize/(FS_SECTOR_SIZE - LAYOUT_SIZE)));
+	int fileSectorSize = (int)(0.5 + ((double)fileSize/(FS_SECTOR_SIZE - HANDLER_SIZE)));
 	int fileCounter = 0;
 	int sectors = 0;
 	int freeSectors = FS_SECTORS_NUM;
@@ -324,4 +324,20 @@ LogFsTestStatus LogFs_rewriteTest(int cycles, int fileSize)
 	printf("log.fs.tests: LogFs_rewriteTest......finished!\n");
 	return status;
 }
+
+
+LogFsTestStatus LogFs_readWriteTest(int cycles, int fileSize)
+{
+	LogFsTestStatus status = PASSED;
+	printf("log.fs.tests: LogFs_rewriteTest......started!\n");
+
+	LogFs_format();
+	if (LogFs_initialize() == FS_ERROR)
+	{
+		printf("  * Initialization failed!\n");
+		status = FAILED;
+	}
+}
+
+
 
