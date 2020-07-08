@@ -219,8 +219,9 @@ LogFs_Status LogFs_initialize(void)
 	LogFs_info.LastFile_SectorNum = 0;
 	LogFs_info.OldestFile_Sector = 0;
 	LogFs_info.OldestFile_SectorNum = 0;
-	LogFs_info.CurrentFile_Sector = 0xFFFF;  // Выставляем некорректное значение для защиты
+	LogFs_info.CurrentFile_Sector = 0;
 	LogFs_info.CurrentWritePosition = 0;
+	LogFs_info.state = FS_INIT_NO;
 
 	// Чтобы узнать состояние файловой системы необходимо из каждого сектора считать первые 4 байта
 	for (i = 0; i < FS_SECTORS_NUM; i++)
@@ -269,18 +270,8 @@ LogFs_Status LogFs_initialize(void)
 	LogFs_info.LastFile_SectorNum = LogFs_getNumberSectorsFile(LogFs_info.LastFile_Sector);
 	LogFs_info.OldestFile_SectorNum = LogFs_getNumberSectorsFile(LogFs_info.OldestFile_Sector);
 
-	
-	// Определим куда поставить указатель на свободное место
-	// Вычисляем адрес сектора
-	Address = FS_SECTOR_SIZE * ((LogFs_info.LastFile_Sector + LogFs_info.LastFile_SectorNum) % FS_SECTORS_NUM);
-	// Читаем первые 4 байта сектора
-	readMemory(Address, buff, LAYOUT_SIZE);
-	if (*(uint16_t*)(buff) == FREE_SPACE_HANDLER)
-		LogFs_info.CurrentFile_Sector = (LogFs_info.LastFile_Sector + LogFs_info.LastFile_SectorNum) % FS_SECTORS_NUM;
-	else
-		return FS_ERROR;
-
-	// Информация о диске получена, возвращаем успех			
+	// Информация о диске получена, возвращаем успех
+	LogFs_info.state = FS_INIT_OK;
 	return FS_FINE;
 }
 
@@ -409,6 +400,9 @@ void LogFs_createFile(void)
 	uint8_t  buff[LAYOUT_SIZE];           // Буфер для чтения заголовка и номера файла
 	uint16_t i;                           // Счетчик циклов
 
+	if (LogFs_info.state != FS_INIT_OK)   // Если файловая система не инициализирована 
+		return;                           // запрещаем что либо делать и выходим
+
 	for (i = 0; i < LAYOUT_SIZE; i++) 
 		buff[i] = 0;
 
@@ -435,7 +429,8 @@ void LogFs_createFile(void)
 	// А в первые два байта заносим заголовок начала нашего нового файла
 	*(uint16_t*)(buff) = FILE_EXIST_HANDLER;
 
-	// Если свободных секторов нет 
+	// Далее нужно определить место для нового файла
+    // Если свободных секторов нет
 	if (LogFs_info.FreeSectors_Num == 0)
 	{
 		// Попав сюда, необходимо освободить сектор(а) с самым старым файлом
@@ -444,6 +439,9 @@ void LogFs_createFile(void)
 		// И стираем сектора со старым файлом
 		LogFs_deleteOldestFile();
 	}
+	else // Если свободные сектора есть, то берем сектор сразу за последним
+		LogFs_info.CurrentFile_Sector = (LogFs_info.LastFile_Sector + LogFs_info.LastFile_SectorNum) % FS_SECTORS_NUM;
+
 	// Создаем файл - Размещаем заголовок и номер на секторе диска
 	Address = FS_SECTOR_SIZE * LogFs_info.CurrentFile_Sector;
 	// Записываем заголовок в файл
