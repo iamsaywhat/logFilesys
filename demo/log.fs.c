@@ -47,7 +47,7 @@ struct {
 	которые он занимал.
 
 	Возвращает:
-				FS_FINE  - Файл был удачно удален из директории
+				FS_SUCCESS  - Файл был удачно удален из директории
 				FS_ERROR - Неизвестное форматирование (файловая система имеет внутреннюю ошибку
 ***************************************************************************************************/
 static LogFs_Status LogFs_deleteOldestFile(void);
@@ -288,7 +288,7 @@ LogFs_Status LogFs_initialize(void)
 
 	// Информация о диске получена, возвращаем успех
 	core.state = FS_INIT_OK;
-	return FS_FINE;
+	return FS_SUCCESS;
 }
 
 
@@ -319,7 +319,7 @@ LogFs_Status LogFs_check(void)
 			*(uint16_t*)(buff) != FREE_SPACE_HANDLER)    // пусто		                                     
 			return FS_ERROR;                             // Если нет, то файловая система повреждена
 	}
-	return FS_FINE;			                             // Значит разметка носителя не нарушена	
+	return FS_SUCCESS;			                             // Значит разметка носителя не нарушена	
 }
 
 
@@ -410,7 +410,7 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 	// Теперь необходимо определить сколько секторов занимает новый "старый" файл
 	core.firstFileSectors = LogFs_getNumberSectorsFile(core.firstFileBegin);
 	// Если попали сюда, значит все хорошо
-	return FS_FINE;
+	return FS_SUCCESS;
 }
 
 
@@ -730,7 +730,7 @@ LogFs_Status LogFs_findFileByNum(uint16_t NUM)
 			LogFs_findFile(NEXT_FILE);
 		// Сверяем номер файла. Если совпадает файл найден можно выходить
 		if (LogFs_getFileProperties(FILE_NUMBER) == NUM)
-			return FS_FINE;
+			return FS_SUCCESS;
 
 	}
 	// Если дошли сюда, значит файл не найден - ошибка
@@ -781,6 +781,6 @@ LogFs_Status LogFs_readFile(uint8_t* Buffer, uint32_t ByteNum, uint32_t Size)
 			Address += 4;
 		}
 	}
-	return FS_FINE;
+	return FS_SUCCESS;
 }
 

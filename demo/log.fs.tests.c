@@ -108,7 +108,7 @@ LogFsTestStatus LogFs_formatTest(void)
 			break;
 		}
 	}
-	if (LogFs_initialize() != FS_FINE)
+	if (LogFs_initialize() != FS_SUCCESS)
 	{
 		printf(" *  The file system is corrupted after formatting. Failed to initialize!\n");
 		status = FAILED;
