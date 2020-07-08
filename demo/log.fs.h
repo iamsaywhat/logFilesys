@@ -147,6 +147,9 @@ typedef enum {
 	FS_INIT_OK,                      // Флаг состояния, означающий, что для чтения файл выбран
 	FS_INIT_NO,                      // Флаг состояния, означающий, что для чтения файл не выбран
 	FS_FILE_END,                     // Конец файла, возвращается когда функцией LogFs_readFile(); файл был прочитан целиком
+	FS_INIT_DONE,
+	FS_NOT_INIT,
+	FS_FILE_OPEN,
 }LogFs_Status;
 
 

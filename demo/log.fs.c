@@ -89,23 +89,28 @@ uint16_t LogFs_getFileNumber(void)
 
 
 /***************************************************************************************************
-	LogFs_getLastFileId - Узнать порядковый последнего созданного файла
+	LogFs_getLastFileId - Узнать порядковый номер последнего созданного файла
 ***************************************************************************************************/
 uint16_t LogFs_getLastFileId(void)
 {
-	uint32_t Address;            // Вычисляемый адрес для чтения
-	uint8_t  buff[4];            // Буфер для чтения заголовка и номера файла
-	uint16_t i;                  // Счетчик циклов
+	uint32_t address;               // Вычисляемый адрес для чтения
+	uint8_t  buffer[HANDLER_SIZE];  // Буфер для чтения заголовка и номера файла
+	uint16_t i;                     // Счетчик циклов
 
-	for (i = 0; i < 4; i++) buff[i] = 0;
+	// Если файловая система не инициализирована, то выходим
+	if (core.state != FS_INIT_DONE && core.state != FS_FILE_OPEN)
+		return 0;
+
+	for (i = 0; i < HANDLER_SIZE; i++) 
+		buffer[i] = 0;
 
 	// Определяем стартовый адрес расположения последнего созданного файла
-	Address = FS_SECTOR_SIZE * core.lastFileBegin;
-	// Читаем залоговок (2 байта) и номер файла (2 байта)
-	readMemory(Address, buff, 4);
+	address = FS_SECTOR_SIZE * core.lastFileBegin;
+	// Читаем залоговок и номер файла
+	readMemory(address, buffer, HANDLER_SIZE);
 
 	// Возвращаем порядкой номер файла
-	return *(uint16_t*)(buff + 2);
+	return *(uint16_t*)(buffer + 2);
 }
 
 
@@ -115,18 +120,24 @@ uint16_t LogFs_getLastFileId(void)
 ***************************************************************************************************/
 uint16_t LogFs_getCurrentFileId(void)
 {
-	uint32_t Address;            // Вычисляемый адрес для чтения
-	uint8_t  buff[4];            // Буфер для чтения заголовка и номера файла
-	uint16_t i;                  // Счетчик циклов
+	uint32_t address;                // Вычисляемый адрес для чтения
+	uint8_t  buffer[HANDLER_SIZE];   // Буфер для чтения заголовка и номера файла
+	uint16_t i;                      // Счетчик циклов
 
-	for (i = 0; i < 4; i++) buff[i] = 0;
+	// Если файловая система не инициализирована, то выходим
+	if (core.state != FS_INIT_DONE && core.state != FS_FILE_OPEN)
+		return 0;
+
+	for (i = 0; i < HANDLER_SIZE; i++) 
+		buffer[i] = 0;
+
 	// Определяем стартовый адрес расположения последнего созданного файла
-	Address = FS_SECTOR_SIZE * core.currentFileBegin;
+	address = FS_SECTOR_SIZE * core.currentFileBegin;
 	// Читаем залоговок (2 байта) и номер файла (2 байта)
-	readMemory(Address, buff, 4);
+	readMemory(address, buffer, HANDLER_SIZE);
 
 	// Возвращаем порядковый номер файла
-	return *(uint16_t*)(buff + 2);
+	return *(uint16_t*)(buffer + 2);
 }
 
 
@@ -136,21 +147,20 @@ uint16_t LogFs_getCurrentFileId(void)
 	LogFs_getNumberSectorsFile - Узнать количество секторов которые занимает файл c началом
 	в секторе с номером Sector
 ***************************************************************************************************/
-static uint16_t LogFs_getNumberSectorsFile(uint16_t Sector)
+static uint16_t LogFs_getNumberSectorsFile(uint16_t sector)
 {
-	uint32_t Address;                       // Вычисляемый адрес чтения
-	uint8_t  buff[HANDLER_SIZE];            // Буфер для чтения заголовка и номера файла
+	uint32_t address;                       // Вычисляемый адрес чтения
+	uint8_t  buffer[HANDLER_SIZE];          // Буфер для чтения заголовка и номера файла
 	uint16_t NumSectors = 1;                // Число секторов для файла по-умолчанию
 	uint16_t i;                             // Счетчик циклов
-	uint16_t _sector = Sector;              // Сектор, где расположено начало файла
 
 	for (i = 0; i < HANDLER_SIZE; i++)
-		buff[i] = 0;
+		buffer[i] = 0;
 
+	address = FS_SECTOR_SIZE * sector;
+	readMemory(address, buffer, HANDLER_SIZE);
 
-	Address = FS_SECTOR_SIZE * Sector;
-	readMemory(Address, buff, HANDLER_SIZE);
-	if (*(uint16_t*)(buff) != FILE_EXIST_HANDLER)
+	if (*(uint16_t*)(buffer) != FILE_EXIST_HANDLER)
 		return 0;
 
 	for (i = 0; i < FS_SECTORS_NUM; i++)
@@ -158,14 +168,14 @@ static uint16_t LogFs_getNumberSectorsFile(uint16_t Sector)
 		// Так как файловая система реализована по типу кольцевого буфера,
 		// необходимо осуществлять переходы от старшего сектора к нулевому непрерывно
 		// Чего и добиваемся этим условием
-		_sector = (++_sector) % FS_SECTORS_NUM;
+		sector = (++sector) % FS_SECTORS_NUM;
 
 		// Теперь вычисляем адрес сектора идущим следом за тем, который был передан аргументом
-		Address = FS_SECTOR_SIZE * _sector;
-		readMemory(Address, buff, HANDLER_SIZE);
+		address = FS_SECTOR_SIZE * sector;
+		readMemory(address, buffer, HANDLER_SIZE);
 		// Ожидаем находить заголовки продолжения файла
 		// Любой другой будет говорить о том, что файл кончился
-		if (*(uint16_t*)(buff) == FILE_CONTINUATION)
+		if (*(uint16_t*)(buffer) == FILE_CONTINUATION)
 			NumSectors++;
 		else 
 			break;
@@ -181,16 +191,17 @@ static uint16_t LogFs_getNumberSectorsFile(uint16_t Sector)
 	LogFs_getFileProperties - Функция позволяет узнать параметры файла, который был выбран
 	функцией "LogFs_findFile": Размер в байтах и порядковый номер в хранилище
 ***************************************************************************************************/
-uint32_t LogFs_getFileProperties(uint8_t CMD)
+uint32_t LogFs_getFileProperties(uint8_t cmd)
 {
 	uint32_t result = 0;
 
 	// Необходимо проверить инициализирована ли структура выбора файла
 	// Если нет, значит и файл не выбран, а значит и выводить нечего.
-	//if (fileSelector.state != FS_INIT_OK)
+	//if (fileSelector.state != FS_INIT_DONE)
 	//	return FS_ERROR;
+
 	// Смотрим, какая информация интересует
-	switch (CMD)
+	switch (cmd)
 	{
 		// Спрашивают номер файла
 	case FILE_NUMBER:
@@ -218,15 +229,14 @@ uint32_t LogFs_getFileProperties(uint8_t CMD)
 ***************************************************************************************************/
 LogFs_Status LogFs_initialize(void)
 {
-	uint32_t   i;                                 // Счетчик циклов
-	uint32_t   Address;                           // Адрес для чтения из памяти
-	uint8_t    buff[HANDLER_SIZE];                // Буфер под читаемый заголовок и номер файла
-	uint32_t   LastFileNum = 0;                   // Номер самого свежего файла
-	uint32_t   OldestFileNum = 0xFFFFFFFF;        // Номер самого старого файла
-	uint8_t    first_step_flag = 1;               // Флаг, используется для определения свободного места для записи
+	uint32_t   i;                            // Счетчик циклов
+	uint32_t   address;                     // Адрес для чтения из памяти
+	uint8_t    buffer[HANDLER_SIZE];        // Буфер под читаемый заголовок и номер файла
+	uint32_t   lastFileId = 0;              // Номер последнего файла
+	uint32_t   firstFileId = 0xFFFFFFFF;    // Номер первого файла
 
 	for (i = 0; i < HANDLER_SIZE; i++)
-		buff[i] = 0;
+		buffer[i] = 0;
 
 	// Инициализируем структуру с информацией о файловой системе
 	core.files = 0;
@@ -237,17 +247,17 @@ LogFs_Status LogFs_initialize(void)
 	core.firstFileSectors = 0;
 	core.currentFileBegin = 0;
 	core.cursorPosition = 0;
-	core.state = FS_INIT_NO;
+	core.state = FS_NOT_INIT;
 
 	// Чтобы узнать состояние файловой системы необходимо из каждого сектора считать первые 4 байта
 	for (i = 0; i < FS_SECTORS_NUM; i++)
 	{
 		// Вычисляем адрес сектора
-		Address = FS_SECTOR_SIZE * i;
+		address = FS_SECTOR_SIZE * i;
 		// Читаем первые 4 байта сектора
-		readMemory(Address, buff, HANDLER_SIZE);
+		readMemory(address, buffer, HANDLER_SIZE);
 		// Проверяем заголовок сектора: содержит ли сектор файл
-		if (*(uint16_t*)(buff) == FILE_EXIST_HANDLER)
+		if (*(uint16_t*)(buffer) == FILE_EXIST_HANDLER)
 		{
 			// Инкрементируем счетчик файлов
 			core.files++;
@@ -256,38 +266,38 @@ LogFs_Status LogFs_initialize(void)
 
 			// Определяем наиболее старый файл из имеющихся, для возможной перезаписи
 			// Ищем наименьший порядковый номер файла
-			if (*(uint16_t*)(buff + 2) < OldestFileNum)
+			if (*(uint16_t*)(buffer + 2) < firstFileId)
 			{
 				// Запоминаем номер файла
-				OldestFileNum = *(uint16_t*)(buff + 2);
+				firstFileId = *(uint16_t*)(buffer + 2);
 				// Фиксируем номер сектора, где этот файл лежит
 				core.firstFileBegin = i;
 			}
 			// Определяем последний созданный файл (номер сектора содержащий этот файл)
 			// Ищем наибольший порядковый номер файла
-			if (*(uint16_t*)(buff + 2) > LastFileNum)
+			if (*(uint16_t*)(buffer + 2) > lastFileId)
 			{
 				// Запоминаем номер файла
-				LastFileNum = *(uint16_t*)(buff + 2);
+				lastFileId = *(uint16_t*)(buffer + 2);
 				// Фиксируем номер сектора, где этот файл лежит
 				core.lastFileBegin = i;
 			}
 		}
 		// Возможно это продолжение файла с предыдущего сектора?
-		else if (*(uint16_t*)(buff) == FILE_CONTINUATION)
+		else if (*(uint16_t*)(buffer) == FILE_CONTINUATION)
 		{
 			core.freeSectors--;
 		}
 		// Тогда здесь должно быть пусто
-		else if (*(uint16_t*)(buff) != FREE_SPACE_HANDLER)
+		else if (*(uint16_t*)(buffer) != FREE_SPACE_HANDLER)
 			return FS_ERROR;
 	}
 	// Дополнительно определим размеры в секторах файлов (самого старого и самого свежего)
 	core.lastFileSectors = LogFs_getNumberSectorsFile(core.lastFileBegin);
 	core.firstFileSectors = LogFs_getNumberSectorsFile(core.firstFileBegin);
-
 	// Информация о диске получена, возвращаем успех
-	core.state = FS_INIT_OK;
+	core.state = FS_INIT_DONE;
+
 	return FS_SUCCESS;
 }
 
@@ -298,28 +308,28 @@ LogFs_Status LogFs_initialize(void)
 ***************************************************************************************************/
 LogFs_Status LogFs_check(void)
 {
-	uint32_t    i;                     // Счетчик циклов
-	uint32_t    Address;               // Адрес для чтения из памяти
-	uint8_t     buff[4];               // Буфер под читаемый заголовок и номер файла
+	uint32_t i;                     // Счетчик циклов
+	uint32_t address;               // Адрес для чтения из памяти
+	uint8_t buffer[HANDLER_SIZE];   // Буфер под читаемый заголовок и номер файла
 
-	if (core.state != FS_INIT_OK)   // Если файловая система не инициализирована 
+	if (core.state != FS_INIT_DONE && core.state != FS_FILE_OPEN)   // Если файловая система не инициализирована 
 		return FS_ERROR;                  // Возвращаем ошибку
 
-	for (i = 0; i < 4; i++) 
-		buff[i] = 0;
+	for (i = 0; i < HANDLER_SIZE; i++) 
+		buffer[i] = 0;
 
 	// Чтобы узнать состояние файловой системы необходимо из каждого сектора считать первые 4 байта
 	for (i = 0; i < FS_SECTORS_NUM; i++)
 	{
-		Address = FS_SECTOR_SIZE * i;                    // Вычисляем адрес сектора
-		readMemory(Address, buff, 4);                    // Читаем первые 4 байта сектора
-		                                                 // Проверяем заголовки секторов: содержит ли сектор файл
-		if (*(uint16_t*)(buff) != FILE_EXIST_HANDLER &&  // содержит ли сектор файл
-			*(uint16_t*)(buff) != FILE_CONTINUATION  &&  // продолжение файла
-			*(uint16_t*)(buff) != FREE_SPACE_HANDLER)    // пусто		                                     
-			return FS_ERROR;                             // Если нет, то файловая система повреждена
+		address = FS_SECTOR_SIZE * i;                      // Вычисляем адрес сектора
+		readMemory(address, buffer, HANDLER_SIZE);         // Читаем первые 4 байта сектора
+		                                                   // Проверяем заголовки секторов: содержит ли сектор файл
+		if (*(uint16_t*)(buffer) != FILE_EXIST_HANDLER &&  // содержит ли сектор файл
+			*(uint16_t*)(buffer) != FILE_CONTINUATION  &&  // продолжение файла
+			*(uint16_t*)(buffer) != FREE_SPACE_HANDLER)    // пусто		                                     
+			return FS_ERROR;                               // Если нет, то файловая система повреждена
 	}
-	return FS_SUCCESS;			                             // Значит разметка носителя не нарушена	
+	return FS_SUCCESS;   // Значит разметка носителя не нарушена	
 }
 
 
@@ -341,11 +351,10 @@ uint64_t LogFs_fullSize(void)
 uint64_t LogFs_freeBytes(void)
 {
 	uint64_t size = 0;
-
-	if (core.state == FS_INIT_OK)
+	if (core.state == FS_INIT_DONE || core.state == FS_FILE_OPEN)
 	{
 		size = ((uint64_t)core.freeSectors * (uint64_t)(FS_SECTOR_SIZE - HANDLER_SIZE));
-		if (core.cursorPosition > 0)
+		if (core.state == FS_FILE_OPEN)
 			size += (FS_SECTOR_SIZE - core.cursorPosition);
 	}
 	return size;
@@ -362,15 +371,12 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 {
 	uint16_t i;                       // Счетчик циклов  
 	uint16_t Count;                   // Количество секторов занимаемых файлом
-	uint32_t Address;                 // Вычисляемый адрес чтения/записи
+	uint32_t address;                 // Вычисляемый адрес чтения/записи
 	uint32_t Sector;                  // Номер сектора
-	uint8_t  buff[HANDLER_SIZE];      // Буфер для чтения загловка и номера сектора
-
-	if (core.state != FS_INIT_OK)   // Если файловая система не инициализирована 
-		return;                           // запрещаем что либо делать и выходим
+	uint8_t  buffer[HANDLER_SIZE];    // Буфер для чтения загловка и номера сектора
 
 	for (i = 0; i < HANDLER_SIZE; i++)
-		buff[i] = 0;
+		buffer[i] = 0;
 
 	// Определяем сколько секторов занимает файл
 	Count = LogFs_getNumberSectorsFile(core.firstFileBegin);
@@ -379,14 +385,14 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 	for (i = 0; i < Count; i++)
 	{
 		// Определяем адреса секторов, в которых он расположен
-		Address = FS_SECTOR_SIZE * (core.firstFileBegin + i);
+		address = FS_SECTOR_SIZE * (core.firstFileBegin + i);
 		// Так как файловая система реализована по типу кольцевого буфера,
 		// необходимо осуществлять переходы от старшего сектора к нулевому непрерывно
 		// Чего и добиваемся этим условием
-		if (Address >= FS_SECTOR_SIZE * FS_SECTORS_NUM) 
-			Address = Address % (FS_SECTOR_SIZE * FS_SECTORS_NUM);
+		if (address >= FS_SECTOR_SIZE * FS_SECTORS_NUM) 
+			address = address % (FS_SECTOR_SIZE * FS_SECTORS_NUM);
 		// Стираем сектор
-		eraseSector(Address);
+		eraseSector(address);
 	}
 	// Обновляем информацию о свободных секторах - теперь их Count штук
 	core.freeSectors += Count;
@@ -398,10 +404,10 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 	// Но необходимо найти начало этого файла
 	// Делаем шаг вперед на Count секторов (Count - количество секторов на которых располагался ныне удалённый файл) и смотрим заголовок и номер файла
 	Sector = (core.firstFileBegin + Count) % FS_SECTORS_NUM;
-	Address = FS_SECTOR_SIZE * Sector;
-	readMemory(Address, buff, HANDLER_SIZE);
+	address = FS_SECTOR_SIZE * Sector;
+	readMemory(address, buffer, HANDLER_SIZE);
 	// Если все в порядке, то здесь должен быть заголовок начала следующего файла
-	if (*(uint16_t*)(buff) != FILE_EXIST_HANDLER)
+	if (*(uint16_t*)(buffer) != FILE_EXIST_HANDLER)
 		return FS_ERROR; // Если нет - файловая система имеет ошибку и завершаем
 	
 	// Фиксируем сектор нового "старого" файла
@@ -423,38 +429,38 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 ***************************************************************************************************/
 void LogFs_createFile(void)
 {
-	uint32_t Address;                     // Вычисляемый адрес чтения
-	uint8_t  buff[HANDLER_SIZE];          // Буфер для чтения заголовка и номера файла
-	uint16_t i;                           // Счетчик циклов
+	uint32_t address;                  // Вычисляемый адрес чтения
+	uint8_t  buffer[HANDLER_SIZE];     // Буфер для чтения заголовка и номера файла
+	uint16_t i;                        // Счетчик циклов
 
-	if (core.state != FS_INIT_OK)   // Если файловая система не инициализирована 
-		return;                           // запрещаем что либо делать и выходим
+	if (core.state != FS_INIT_DONE)  // Если файловая система не инициализирована запрещаем
+		return;                      // что либо делать и выходим и выходим
 
 	for (i = 0; i < HANDLER_SIZE; i++)
-		buff[i] = 0;
+		buffer[i] = 0;
 
 	// Чтобы узнать порядковый номер создаваемого файла
 	// Воспользуемся информацией о последнем созданном файле
 	// К его номеру сделаем икремент - и получим номер нового файла
-	Address = FS_SECTOR_SIZE * core.lastFileBegin;
-	readMemory(Address, buff, HANDLER_SIZE);
+	address = FS_SECTOR_SIZE * core.lastFileBegin;
+	readMemory(address, buffer, HANDLER_SIZE);
 
 	// Если создаётся первый файл в директории, то никакого LastFile не существует 
 	// (только в этом случае LastFile будет с заголовком FREE_SPACE_HANDLER).
 	// Тогда номер создаеваемого файла точно будет = 0
-	if (*(uint16_t*)(buff) == FREE_SPACE_HANDLER)
-		*(uint16_t*)(buff + 2) = 0;
+	if (*(uint16_t*)(buffer) == FREE_SPACE_HANDLER)
+		*(uint16_t*)(buffer + 2) = 0;
 
 	// Создаётся не первый файл, в этом случае порядковый номер создаваемого файла
 	// будем выбирать как номер последнего созданного + 1
 	else
 	{
 		// А тут к полученному номеру добавляем 1
-		*(uint16_t*)(buff + 2) = *(uint16_t*)(buff + 2) + 1;
+		*(uint16_t*)(buffer + 2) = *(uint16_t*)(buffer + 2) + 1;
 	}
 
 	// А в первые два байта заносим заголовок начала нашего нового файла
-	*(uint16_t*)(buff) = FILE_EXIST_HANDLER;
+	*(uint16_t*)(buffer) = FILE_EXIST_HANDLER;
 
 	// Далее нужно определить место для нового файла
     // Если свободных секторов нет
@@ -470,15 +476,16 @@ void LogFs_createFile(void)
 		core.currentFileBegin = (core.lastFileBegin + core.lastFileSectors) % FS_SECTORS_NUM;
 
 	// Создаем файл - Размещаем заголовок и номер на секторе диска
-	Address = FS_SECTOR_SIZE * core.currentFileBegin;
+	address = FS_SECTOR_SIZE * core.currentFileBegin;
 	// Записываем заголовок в файл
-	writeMemory(Address, buff, HANDLER_SIZE);
+	writeMemory(address, buffer, HANDLER_SIZE);
 	// Смещаем указатель для последующей записи на HANDLER_SIZE байт (в каждом секторе первые HANDLER_SIZE байт - резерв файловой системы)
 	core.cursorPosition = HANDLER_SIZE;
 	// Раз заняли один сектор новым файлом, то нужно декрементировать счетчик свободных секторов
 	core.freeSectors--;
-	// Файл создан, нужно обновить счетчик файлов
+	// Файл создан, нужно обновить счетчик файлов и состояние
 	core.files++;
+	core.state = FS_FILE_OPEN;
 	// После создания нового файла, он становится последним в списке
 	core.lastFileBegin = core.currentFileBegin;
 	core.lastFileSectors = 1;
@@ -489,24 +496,28 @@ void LogFs_createFile(void)
 /***************************************************************************************************
 	LogFs_writeToCurrentFile - Функция записи информации в файл
 ***************************************************************************************************/
-void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size)
+void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size)
 {
-	uint32_t i;                  // Счетчик циклов
-	uint32_t Address;            // Вычисляемый адрес для чтения
-	uint8_t  buff[HANDLER_SIZE]; // Буфер для чтения заголовка и номера файла
-	uint32_t adr;                // Вычисляемый адрес для реализации перехода между секторами
+	uint32_t i;                     // Счетчик циклов
+	uint32_t address;               // Вычисляемый адрес для чтения
+	uint8_t  _buffer[HANDLER_SIZE]; // Буфер для чтения заголовка и номера файла
+	uint32_t adr;                   // Вычисляемый адрес для реализации перехода между секторами
 
-	for (i = 0; i < HANDLER_SIZE; i++)  buff[i] = 0;
+	if (core.state != FS_FILE_OPEN)  // Проверим открыт ли файл, и если нет, то
+		return;                      // ничего не делаем
+
+	for (i = 0; i < HANDLER_SIZE; i++)
+		_buffer[i] = 0;
 
 	// Определяем адрес для начала записи по выделенному сектору и смещению от его начала "CurrentWritePosition"
-	Address = FS_SECTOR_SIZE * core.currentFileBegin + core.cursorPosition;
+	address = FS_SECTOR_SIZE * core.currentFileBegin + core.cursorPosition;
 
 	// Проверяем хватит ли нам места в текущем секторе
-	if ((core.cursorPosition + Size) >= FS_SECTOR_SIZE)
+	if ((core.cursorPosition + size) >= FS_SECTOR_SIZE)
 	{
 		// Не хватает свободного места, необходимо освободить
 		uint32_t currentSectorFreeSpace = (FS_SECTOR_SIZE - core.cursorPosition);
-		uint16_t needFreeSector = (0.5 + ((double)(Size - currentSectorFreeSpace) / (FS_SECTOR_SIZE - HANDLER_SIZE)));
+		uint16_t needFreeSector = (0.5 + ((double)(size - currentSectorFreeSpace) / (FS_SECTOR_SIZE - HANDLER_SIZE)));
 
 		// Посмотрим имеются ли свободные сектора
 		while (core.freeSectors < needFreeSector && core.files > 1)
@@ -516,7 +527,7 @@ void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size)
 
 	// Будем писать побайтово, так как нужен контроль над переходом на новый сектор
 	// Там может быть, например, не пусто 
-	for (i = 0; i < Size; i++)
+	for (i = 0; i < size; i++)
 	{
 		/* Здесь ограничение на запись: если файл единственный удалять больше нечего, 
 		 * и место закончилось, то просто брокируем запись и выходим */
@@ -524,7 +535,7 @@ void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size)
 			return;
 
 		// Определяем адрес места записи
-		Address = FS_SECTOR_SIZE * core.currentFileBegin + core.cursorPosition;
+		address = FS_SECTOR_SIZE * core.currentFileBegin + core.cursorPosition;
 
 		// Условие для контроля перехода между секторами
 		// Определяем границу перехода по позиции в секторе, если она равна размеру сектора, это и есть граница
@@ -533,30 +544,28 @@ void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size)
 			/* Попали на новый сектор, необходимо объявить о продолжении файла, создав в следующем секторе 
 			 * соответствующий заголовок и дублировать номер файла, для чего возвращаемся к началу текущего сектора,
 			 * чтобы клонировать его разметку */
-			Address = FS_SECTOR_SIZE * core.currentFileBegin;     // Узнаем номер текущего файла в каталоге
-			readMemory(Address, buff, HANDLER_SIZE);                      // Читаем первые HANDLER_SIZE байт разметки
-			*(uint16_t*)(buff) = FILE_CONTINUATION;                       // Информацию получили, теперь подменим заголовок 
-			                                                              // на заголовок продолжения файла, номер остаётся таким же
-
+			address = FS_SECTOR_SIZE * core.currentFileBegin;   // Узнаем номер текущего файла в каталоге
+			readMemory(address, _buffer, HANDLER_SIZE);         // Читаем первые HANDLER_SIZE байт разметки
+			*(uint16_t*)(_buffer) = FILE_CONTINUATION;          // Информацию получили, теперь подменим заголовок 
+			                                                    // на заголовок продолжения файла, номер остаётся таким же
 			// Если сектор последний - нужно перейти на первый (кольцевой буфер)
 			core.currentFileBegin = (++core.currentFileBegin) % FS_SECTORS_NUM;
 			// Так же наш самый новый файл (то есть текущий), стал занимать на один сектор больше
 			core.lastFileSectors = (++core.lastFileSectors) % FS_SECTORS_NUM;
 
-	
-			Address = FS_SECTOR_SIZE * core.currentFileBegin;      // Вычисляем адрес для записи (начало нового сектора)
-			writeMemory(Address, buff, HANDLER_SIZE);                      // Размечаем этот сектор как продолжение нашего файла
-			core.freeSectors--;                                  // Декрементируем кол-во свободных секторов
+			address = FS_SECTOR_SIZE * core.currentFileBegin;  // Вычисляем адрес для записи (начало нового сектора)
+			writeMemory(address, _buffer, HANDLER_SIZE);       // Размечаем этот сектор как продолжение нашего файла
+			core.freeSectors--;                                // Декрементируем кол-во свободных секторов
 			core.cursorPosition = HANDLER_SIZE;                // Задаем смещение на размер заголовка и номера от начала нового сектора
 			//Вычисляем адрес для записи
-			Address = FS_SECTOR_SIZE * core.currentFileBegin + core.cursorPosition;
+			address = FS_SECTOR_SIZE * core.currentFileBegin + core.cursorPosition;
 		    // Теперь все готово к записи
 		}
 
 		// Пишем в файл, и делаем инкремент смещения от начала сектора
-		if (Buffer[i] != 0xFF)
+		if (buffer[i] != 0xFF)
 		{
-			writeMemory(Address, &Buffer[i], 1);
+			writeMemory(address, &buffer[i], 1);
 			core.cursorPosition++;
 		}
 	}
@@ -567,50 +576,48 @@ void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size)
 /***************************************************************************************************
 	LogFs_findFile - Функция поиска файлов в директории
 ***************************************************************************************************/
-LogFs_Status LogFs_findFile(uint8_t CMD)
+LogFs_Status LogFs_findFile(uint8_t cmd)
 {
-	uint32_t           Address;            // Вычисляемый адрес для чтения                     
-	uint8_t            buff[2];            // Буфер для чтения заголовка и номера файла
+	uint32_t           address;            // Вычисляемый адрес для чтения                     
+	uint8_t            buffer[2];          // Буфер для чтения заголовка и номера файла
 	uint32_t           i;                  // Счеттчик циклов
 	static uint32_t    FileCount = 0;      // Количество просмотренных файлов
 
 	// Если файлы отсутсвуют или система не инициализированна, то нечего искать
-	if (core.files <= 0 || core.state == FS_INIT_NO)
+	if (core.files <= 0 || (core.state != FS_INIT_DONE && core.state != FS_FILE_OPEN))
 		return FS_ERROR;
 
 	// Посмотрим, что за команда
 	// Если структура не была проинициализирована и вдруг приходит команда NEXT_FILE (Которая должна приходить только после FIRST_FILE)
 	// Это ошибка
-	if (CMD == NEXT_FILE && fileSelector.state != FS_INIT_OK)
+	if (cmd == NEXT_FILE && fileSelector.state != FS_INIT_DONE)
 		return FS_ERROR;
 
 	// Команда на запрос информации о самом старом файле в директории, равносильно команде на инициализацию структуры (отсчетной точкой будет старый файл)
-	else if (CMD == FIRST_FILE)
+	else if (cmd == FIRST_FILE)
 	{
 		// Сбрасываем и инициализируем структуру работы с файлами
 		fileSelector.size = 0;
 		fileSelector.id = 0;
 		fileSelector.sectors = core.firstFileSectors;
 		fileSelector.begin = core.firstFileBegin;
-		fileSelector.state = FS_INIT_OK;
 
 		// Сбрасываем счетчик просмотренных файлов
 		FileCount = 0;
 	}
 	// Команда на запрос информации о самом новом файле в директории
-	else if (CMD == LAST_FILE)
+	else if (cmd == LAST_FILE)
 	{
 		fileSelector.size = 0;
 		fileSelector.id = 0;
 		fileSelector.sectors = core.lastFileSectors;
 		fileSelector.begin = core.lastFileBegin;
-		fileSelector.state = FS_INIT_OK;
 
 		// Сбрасываем счетчик просмотренных файлов
 		FileCount = core.files - 1;
 	}
 	// Переходим к следующему файлу, если структура была инициализирована (точка отсчета есть)
-	else if (CMD == NEXT_FILE && fileSelector.state == FS_INIT_OK)
+	else if (cmd == NEXT_FILE && fileSelector.state == FS_INIT_DONE)
 	{
 		fileSelector.size = 0;
 		fileSelector.id = 0;
@@ -621,14 +628,13 @@ LogFs_Status LogFs_findFile(uint8_t CMD)
 		// Теперь необходимо определить сколько секторов занимает этот файл
 		for (i = 1; i < FS_SECTORS_NUM; i++)
 		{
-			Address = FS_SECTOR_SIZE * (fileSelector.begin + i);
+			address = FS_SECTOR_SIZE * (fileSelector.begin + i);
 			// Контролируем переходы кольцевого буфера (чтобы избежать переполнения и обращения по несуществующему адресу)
-			Address = Address % (FS_SECTORS_NUM * FS_SECTOR_SIZE);
+			address = address % (FS_SECTORS_NUM * FS_SECTOR_SIZE);
 			// Будем читать заголовки секторов после StartSector пока не найдем FILE_EXIST_HANDLER - признак начала следующего файла
-			readMemory(Address, buff, 2);
-			if (*(uint16_t*)(buff) == FILE_EXIST_HANDLER || *(uint16_t*)(buff) == 0xFFFF)
+			readMemory(address, buffer, 2);
+			if (*(uint16_t*)(buffer) == FILE_EXIST_HANDLER || *(uint16_t*)(buffer) == 0xFFFF)
 				break;
-
 		}
 		// Фиксируем число таких секторов
 		fileSelector.sectors = i;
@@ -638,44 +644,46 @@ LogFs_Status LogFs_findFile(uint8_t CMD)
 		return FS_ERROR;
 
 	// Получаем адрес сектора расположения файла
-	Address = FS_SECTOR_SIZE * fileSelector.begin;
+	address = FS_SECTOR_SIZE * fileSelector.begin;
 
 	// Проверим присутсвует ли по этому адресу заголовок начала файла
-	readMemory(Address, buff, 2);
-	if (*(uint16_t*)(buff) != FILE_EXIST_HANDLER)
+	readMemory(address, buffer, 2);
+	if (*(uint16_t*)(buffer) == FILE_EXIST_HANDLER)
+		fileSelector.state = FS_INIT_DONE;
+	else 
 		return FS_ERROR; // Заголовка нет, файловая система содержит ошибку
 
 	// Узнаем порядковый номер этого файла в директории
-	Address += 2;
-	readMemory(Address, buff, 2);
-	fileSelector.id = *(uint16_t*)(buff);
+	address += 2;
+	readMemory(address, buffer, 2);
+	fileSelector.id = *(uint16_t*)(buffer);
 
 	// Если файл содержится на нескольких секторах, сразу переходим в последний
 	if (fileSelector.sectors > 1)
 	{
 		// Определяем адрес этого сектора
-		Address = FS_SECTOR_SIZE * (fileSelector.begin + fileSelector.sectors - 1);
+		address = FS_SECTOR_SIZE * (fileSelector.begin + fileSelector.sectors - 1);
 		// Контролируем переходы кольцевого буфера (чтобы избежать переполнения и обращения по несуществующему адресу)
-		Address = Address % (FS_SECTORS_NUM * FS_SECTOR_SIZE);
+		address = address % (FS_SECTORS_NUM * FS_SECTOR_SIZE);
 		// А счетчик байт файла инкрементируем на (FS_SECTOR_SIZE - 4) * (Количество занятых файлом секторов - 1)
 		fileSelector.size = (FS_SECTOR_SIZE - 4) * (fileSelector.sectors - 1);
 		// Смещаем адрес на 4 заголовочных байта
-		Address += 4;
+		address += 4;
 	}
 	// Если же файл содержится только в текущем секторе смещаем адрес еще на 2 байта (от номера файла; на первый байт данных)
 	else
-		Address += 2;
+		address += 2;
 
 	// Дальше начинаем искать конец файла
 	for (i = 0; i < FS_SECTOR_SIZE - 4; i++)
 	{
 		// Будем считывать байт за байтом из этого сектора и смотреть не упёрлись ли мы в конец (0xFF - форматированная ячейка)
-		readMemory(Address, &buff[0], 1);
+		readMemory(address, &buffer[0], 1);
 		// Если конец файла, то выходим
-		if (*(uint8_t*)(buff) == 0xFF)
+		if (*(uint8_t*)(buffer) == 0xFF)
 			break;
 		// Если попали сюда, то полученный байт не признак конца и нужно инкрементировать счетчик байт и адрес
-		Address++;
+		address++;
 		fileSelector.size++;
 	}
 	// Инкрементируем счетчик просмотренных файлов, так как если мы дошли сюда, значит файл просмотрен
@@ -695,28 +703,29 @@ LogFs_Status LogFs_findFile(uint8_t CMD)
 /***************************************************************************************************
 	LogFs_findFileByNum - Функция осуществляет поиск файла по номеру.
 ***************************************************************************************************/
-LogFs_Status LogFs_findFileByNum(uint16_t NUM)
+LogFs_Status LogFs_findFileByNum(uint16_t id)
 {
-	uint16_t files = 0;            // Количество файлов в хранилище
-	uint16_t min_num;              // Минимальный порядковый номер среди файлов 
-	uint16_t max_num;			   // Максимальный порядковый номер среди файлов
-	uint16_t i;                    // Счетчик циклов
+	uint16_t files = 0;    // Количество файлов в хранилище
+	uint16_t minId;    // Минимальный порядковый номер среди файлов 
+	uint16_t maxId;    // Максимальный порядковый номер среди файлов
+	uint16_t i;            // Счетчик циклов
 
 
 	// Если файлы отсутсвуют или система не инициализированна, то нечего искать
-	if (core.files <= 0 || core.state == FS_INIT_NO)
+	if (core.files <= 0 || (core.state != FS_INIT_DONE && core.state != FS_FILE_OPEN))
 		return FS_ERROR;
 
 	// Проверим существует ли такой номер
-	// Посмотрим порядковый номер самого старого файла (номер должен быть самым маленьким)
-	LogFs_findFile(FIRST_FILE);
-	min_num = LogFs_getFileProperties(FILE_NUMBER);
 	// Посмотрим порядковый номер самого свежего файла (номер должен быть самым большим)
 	LogFs_findFile(LAST_FILE);
-	max_num = LogFs_getFileProperties(FILE_NUMBER);
+	maxId = LogFs_getFileProperties(FILE_NUMBER);
+
+	// Посмотрим порядковый номер самого старого файла (номер должен быть самым маленьким)
+	LogFs_findFile(FIRST_FILE);
+	minId = LogFs_getFileProperties(FILE_NUMBER);
 
 	// Номер запрашиваемого файла должен принадлжеать данному диапазону, иначе ошибка - файл не найден
-	if (NUM > max_num || NUM < min_num)
+	if (id > maxId || id < minId)
 		return FS_ERROR;
 
 	// Получим число файлов в хранилище
@@ -729,9 +738,8 @@ LogFs_Status LogFs_findFileByNum(uint16_t NUM)
 		else
 			LogFs_findFile(NEXT_FILE);
 		// Сверяем номер файла. Если совпадает файл найден можно выходить
-		if (LogFs_getFileProperties(FILE_NUMBER) == NUM)
+		if (LogFs_getFileProperties(FILE_NUMBER) == id)
 			return FS_SUCCESS;
-
 	}
 	// Если дошли сюда, значит файл не найден - ошибка
 	return FS_ERROR;
@@ -744,41 +752,41 @@ LogFs_Status LogFs_findFileByNum(uint16_t NUM)
 	LogFs_findFile(), поскольку эта функция и позволяет нам определить какой файл будем
 	читать. То, какой файл будем читать содержится в структуре fileSelector.
 ***************************************************************************************************/
-LogFs_Status LogFs_readFile(uint8_t* Buffer, uint32_t ByteNum, uint32_t Size)
+LogFs_Status LogFs_readFile(uint8_t* buffer, uint32_t position, uint32_t size)
 {
-	uint32_t Address;     // Адрес чтения 
+	uint32_t address;     // Адрес чтения 
 	uint32_t i;           // Счетчик циклов
-	uint32_t Sector;      // Номер сектора от начала файла
+	uint32_t sector;      // Номер сектора от начала файла
 
-	if (core.state == FS_INIT_NO || core.files <= 0)
+	if (core.state == FS_NOT_INIT || core.files <= 0)
 		return FS_ERROR;
 
 	// Проверим корректность параметров, и запретим чтение за пределами файла
-	if (ByteNum + Size > fileSelector.size)
+	if (position + size > fileSelector.size)
 		return FS_ERROR;
 
 
 	// Определяем к какому сектору файла относится первый читаемый байт
-	Sector = ByteNum / (FS_SECTOR_SIZE - 4);
+	sector = position / (FS_SECTOR_SIZE - HANDLER_SIZE);
 
 	// Получаем текущий адрес ячейки для чтения
 	// Сначала адрес нужного сектора с контролем переходов
-	Address = (FS_SECTOR_SIZE * (fileSelector.begin + Sector)) % (FS_SECTOR_SIZE * FS_SECTORS_NUM);
+	address = (FS_SECTOR_SIZE * (fileSelector.begin + sector)) % (FS_SECTOR_SIZE * FS_SECTORS_NUM);
 	// Затем задаем необходимое смещение от начала сектора
-	Address += 4 + (ByteNum % (FS_SECTOR_SIZE - 4));
+	address += 4 + (position % (FS_SECTOR_SIZE - HANDLER_SIZE));
 
 	// Начинаем побайтово читать файл
-	for (i = 0; i < Size; i++)
+	for (i = 0; i < size; i++)
 	{
 		// Читаем байт
-		readMemory(Address, &Buffer[i], 1);
+		readMemory(address, &buffer[i], 1);
 		// Инкрементируем адрес с контролем перехода кольцевого буфера
-		Address = (Address + 1) % (FS_SECTOR_SIZE * FS_SECTORS_NUM);
+		address = (address + 1) % (FS_SECTOR_SIZE * FS_SECTORS_NUM);
 		// Проверим, вдруг адрес указывает на первые 4 байта заголовка сектора
-		if (Address % FS_SECTOR_SIZE == 0)
+		if (address % FS_SECTOR_SIZE == 0)
 		{
 			// Они нам не нужны, поэтому сразу перепрыгиваем на 4 байта вперед
-			Address += 4;
+			address += 4;
 		}
 	}
 	return FS_SUCCESS;
