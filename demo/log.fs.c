@@ -191,7 +191,7 @@ static uint16_t LogFs_getNumberSectorsFile(uint16_t sector)
 	LogFs_getFileProperties - Функция позволяет узнать параметры файла, который был выбран
 	функцией "LogFs_findFile": Размер в байтах и порядковый номер в хранилище
 ***************************************************************************************************/
-uint32_t LogFs_getFileProperties(uint8_t cmd)
+uint32_t LogFs_getFileProperties(LogFs_CMD cmd)
 {
 	uint32_t result = 0;
 
@@ -576,7 +576,7 @@ void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size)
 /***************************************************************************************************
 	LogFs_findFile - Функция поиска файлов в директории
 ***************************************************************************************************/
-LogFs_Status LogFs_findFile(uint8_t cmd)
+LogFs_Status LogFs_findFile(LogFs_CMD cmd)
 {
 	uint32_t           address;            // Вычисляемый адрес для чтения                     
 	uint8_t            buffer[2];          // Буфер для чтения заголовка и номера файла
@@ -665,10 +665,10 @@ LogFs_Status LogFs_findFile(uint8_t cmd)
 		address = FS_SECTOR_SIZE * (fileSelector.begin + fileSelector.sectors - 1);
 		// Контролируем переходы кольцевого буфера (чтобы избежать переполнения и обращения по несуществующему адресу)
 		address = address % (FS_SECTORS_NUM * FS_SECTOR_SIZE);
-		// А счетчик байт файла инкрементируем на (FS_SECTOR_SIZE - 4) * (Количество занятых файлом секторов - 1)
-		fileSelector.size = (FS_SECTOR_SIZE - 4) * (fileSelector.sectors - 1);
+		// А счетчик байт файла инкрементируем на (FS_SECTOR_SIZE - HANDLER_SIZE) * (Количество занятых файлом секторов - 1)
+		fileSelector.size = (FS_SECTOR_SIZE - HANDLER_SIZE) * (fileSelector.sectors - 1);
 		// Смещаем адрес на 4 заголовочных байта
-		address += 4;
+		address += HANDLER_SIZE;
 	}
 	// Если же файл содержится только в текущем секторе смещаем адрес еще на 2 байта (от номера файла; на первый байт данных)
 	else
@@ -691,7 +691,7 @@ LogFs_Status LogFs_findFile(uint8_t cmd)
 	// Проверяем все ли файлы в хранилище были просмотрены
 	if (core.files <= FileCount)
 	{
-		fileSelector.state = FS_INIT_NO;
+		fileSelector.state = FS_NOT_INIT;
 		return FS_ALL_FILES_SCROLLS;
 	}
 

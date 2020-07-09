@@ -144,11 +144,9 @@ typedef enum {
 	FS_ERROR,                        // Ошибка
 	FS_NOT_OVER,                     // Имеются еще файлы, которые не были показаны
 	FS_ALL_FILES_SCROLLS,            // Все файлы были просмотрены. Возвращается LogFs_FindFile, когда был найден последний файл в директории
-	FS_INIT_OK,                      // Флаг состояния, означающий, что для чтения файл выбран
-	FS_INIT_NO,                      // Флаг состояния, означающий, что для чтения файл не выбран
+	FS_INIT_DONE,                    // Флаг состояния, означающий, что для чтения файл выбран
+	FS_NOT_INIT,                     // Флаг состояния, означающий, что для чтения файл не выбран
 	FS_FILE_END,                     // Конец файла, возвращается когда функцией LogFs_readFile(); файл был прочитан целиком
-	FS_INIT_DONE,
-	FS_NOT_INIT,
 	FS_FILE_OPEN,
 }LogFs_Status;
 
@@ -248,7 +246,7 @@ void LogFs_createFile(void);
 	Возвращает:
 				NONE
 ***************************************************************************************************/
-void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size);
+void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size);
 
 
 /***************************************************************************************************
@@ -276,7 +274,7 @@ void LogFs_writeToCurrentFile(uint8_t* Buffer, uint32_t Size);
 				FS_ALL_FILES_SCROLLS - Все файлы были успешно просмотрены
 				FS_NOT_OVER - Еще остались файлы, которые можно просмотреть.
 ***************************************************************************************************/
-LogFs_Status LogFs_findFile(uint8_t CMD);
+LogFs_Status LogFs_findFile(LogFs_CMD cmd);
 
 
 /***************************************************************************************************
@@ -291,7 +289,7 @@ LogFs_Status LogFs_findFile(uint8_t CMD);
 				Размер в байтах файла (FILE_SIZE);
 				Порядковый номер файла в хранилище (FILE_NUM);
 ***************************************************************************************************/
-uint32_t LogFs_getFileProperties(uint8_t CMD);
+uint32_t LogFs_getFileProperties(LogFs_CMD cmd);
 
 
 /***************************************************************************************************
@@ -302,7 +300,7 @@ uint32_t LogFs_getFileProperties(uint8_t CMD);
 				FS_ERROR - Такого файла не существует
 				FS_SUCCESS  - Файл найден, готов к чтению
 ***************************************************************************************************/
-LogFs_Status LogFs_findFileByNum(uint16_t NUM);
+LogFs_Status LogFs_findFileByNum(uint16_t id);
 
 
 /***************************************************************************************************
@@ -324,7 +322,7 @@ LogFs_Status LogFs_findFileByNum(uint16_t NUM);
 				FS_ERROR - Если ошибка в параметрах (стартовый байт и размер чтения)
 				FS_SUCCESS	 - Цикл чтения завершен, но конец файла не достигнут
 ***************************************************************************************************/
-LogFs_Status LogFs_readFile(uint8_t* Buffer, uint32_t ByteNum, uint32_t Size);
+LogFs_Status LogFs_readFile(uint8_t* buffer, uint32_t position, uint32_t size);
 
 
 #endif
