@@ -593,6 +593,16 @@ LogFs_Status LogFs_findFile(LogFs_CMD cmd)
 	if (cmd == NEXT_FILE && fileSelector.state != FS_INIT_DONE)
 		return FS_ERROR;
 
+	else if (cmd == FIRST_FILE && core.files < 2)
+	{
+		fileSelector.size = 0;
+		fileSelector.id = 0;
+		fileSelector.sectors = core.lastFileSectors;
+		fileSelector.begin = core.lastFileBegin;
+
+		// Сбрасываем счетчик просмотренных файлов
+		FileCount = core.files - 1;
+	}
 	// Команда на запрос информации о самом старом файле в директории, равносильно команде на инициализацию структуры (отсчетной точкой будет старый файл)
 	else if (cmd == FIRST_FILE)
 	{
