@@ -114,37 +114,8 @@ uint16_t LogFs_getLastFileId(void)
 }
 
 
-
 /***************************************************************************************************
-	LogFs_getCurrentFileId - Узнать порядковый номер открытого на запись файла
-***************************************************************************************************/
-uint16_t LogFs_getCurrentFileId(void)
-{
-	uint32_t address;                // Вычисляемый адрес для чтения
-	uint8_t  buffer[HANDLER_SIZE];   // Буфер для чтения заголовка и номера файла
-	uint16_t i;                      // Счетчик циклов
-
-	// Если файловая система не инициализирована, то выходим
-	if (core.state != FS_INIT_DONE && core.state != FS_FILE_OPEN)
-		return 0;
-
-	for (i = 0; i < HANDLER_SIZE; i++) 
-		buffer[i] = 0;
-
-	// Определяем стартовый адрес расположения последнего созданного файла
-	address = FS_SECTOR_SIZE * core.currentFileSector;
-	// Читаем залоговок (2 байта) и номер файла (2 байта)
-	readMemory(address, buffer, HANDLER_SIZE);
-
-	// Возвращаем порядковый номер файла
-	return *(uint16_t*)(buffer + 2);
-}
-
-
-
-
-/***************************************************************************************************
-	LogFs_getNumberSectorsFile - Узнать количество секторов которые занимает файл c началом
+	LogFs_getNumberSectorsFile - Количество секторов которые занимает файл c началом
 	в секторе с номером Sector
 ***************************************************************************************************/
 static uint16_t LogFs_getNumberSectorsFile(uint16_t sector)
@@ -517,7 +488,7 @@ void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size)
 	{
 		// Не хватает свободного места, необходимо освободить
 		uint32_t currentSectorFreeSpace = (FS_SECTOR_SIZE - core.cursorPosition);
-		uint16_t needFreeSector = (0.5 + ((double)(size - currentSectorFreeSpace) / (FS_SECTOR_SIZE - HANDLER_SIZE)));
+		uint16_t needFreeSector = (uint16_t)(0.5 + ((double)(size - currentSectorFreeSpace) / (FS_SECTOR_SIZE - HANDLER_SIZE)));
 
 		// Посмотрим имеются ли свободные сектора
 		while (core.freeSectors < needFreeSector && core.files > 1)

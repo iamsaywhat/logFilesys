@@ -41,7 +41,7 @@ LogFsTestStatus LogFs_plarformdependTest(void)
 	for (int i = 0; i < FS_SECTORS_NUM; i++)
 	{
 		address = FS_SECTOR_SIZE * i;
-		readMemory(address, &buffer, FS_SECTOR_SIZE);
+		readMemory(address, buffer, FS_SECTOR_SIZE);
 		if (buffer[i] != 0xFF)
 		{
 			printf(" *  The chip is not erased by eraseChip()!\n");
