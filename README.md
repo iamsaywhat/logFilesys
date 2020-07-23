@@ -24,7 +24,7 @@ The file system uses only two private control structures `core` and `fileSelecto
 
 Also, you can search a file using the `LogFs_findFileByNum()` function, which allows you to open a file with an explicitly specified ID.
 
-You can read the file using `LogFs_readFile()`. The `LogFs_readFile()` function allows you to read the same file in several requests, if it is not possible to read the entire file as a whole (usually in this case, buffering in RAM is needed, which can be a problem for large files), for this the function allows you to specify the read position from the file to continue reading the file from the specified location.
+You can read the file using `LogFs_read()`. The `LogFs_read()` function allows you to read the same file in several requests, if it is not possible to read the entire file as a whole (usually in this case, buffering in RAM is needed, which can be a problem for large files), for this the function allows you to specify the read position from the file to continue reading the file from the specified location.
 
 
 ## How to use
@@ -37,6 +37,6 @@ where
 3) Implement your low-level read/write/eraseChip/eraseSector functions based on your platform in `log.fs.platformdepend.c`.
 
 ## Caution!
- - When using this file system on media other than flash memory, you need to be careful for the file system, the empty state (erased cell) is `0xFF`. If this condition is not met on your device, `the file system won't work correctly`;
+- When using this file system on media other than flash memory, you need to be careful for the file system, the empty state (erased cell) is `0xFF`. If this condition is not met on your device, `the file system won't work correctly`;
 - You cannot delete files of your choice, you can only erase the whole device, not individual files. Thefile system itself takes care of overwriting files when the device is full.
 - To close the file, you need to reinitialize the file system using `LogFs_initialize()`. If the file (session) is already open, the call to `LogFs_createFile()` will return an error.

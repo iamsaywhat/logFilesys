@@ -89,9 +89,9 @@ uint16_t LogFs_getFileNumber(void)
 
 
 /***************************************************************************************************
-	LogFs_getLastFileId - Узнать порядковый номер последнего созданного файла
+	LogFs_getLastFileID - Узнать порядковый номер последнего созданного файла
 ***************************************************************************************************/
-uint16_t LogFs_getLastFileId(void)
+uint16_t LogFs_getLastFileID(void)
 {
 	uint32_t address;               // Вычисляемый адрес для чтения
 	uint8_t  buffer[HANDLER_SIZE];  // Буфер для чтения заголовка и номера файла
@@ -155,35 +155,6 @@ static uint16_t LogFs_getNumberSectorsFile(uint16_t sector)
 	return NumSectors;
 }
 
-
-/***************************************************************************************************
-	LogFs_getFileProperties - Функция позволяет узнать параметры файла, который был выбран
-	функцией "LogFs_findFile": Размер в байтах и порядковый номер в хранилище
-***************************************************************************************************/
-uint32_t LogFs_getFileProperties(LogFs_CMD cmd)
-{
-	uint32_t result = 0;
-
-	// Необходимо проверить инициализирована ли структура выбора файла
-	// Если нет, значит и файл не выбран, а значит и выводить нечего.
-	//if (fileSelector.state != FS_INIT_DONE)
-	//	return FS_ERROR;
-
-	// Смотрим, какая информация интересует
-	switch (cmd)
-	{
-		// Спрашивают номер файла
-	case FILE_NUMBER:
-		result = fileSelector.id;
-		break;
-		// Спрашивают размер файла файла
-	case FILE_SIZE:
-		result = fileSelector.size;
-		break;
-
-	}
-	return result;
-}
 
 /***************************************************************************************************
 	LogFs_getFileProperties - Функция позволяет узнать размер файла, который был выбран
@@ -327,9 +298,9 @@ LogFs_Status LogFs_check(void)
 
 
 /***************************************************************************************************
-	LogFs_fullSize - Размер носителя, байт
+	LogFs_totalSize - Размер носителя, байт
 ***************************************************************************************************/
-uint64_t LogFs_fullSize(void)
+uint64_t LogFs_totalSize(void)
 {
 	return FS_SECTORS_NUM * (FS_SECTOR_SIZE - HANDLER_SIZE);
 }
@@ -337,9 +308,9 @@ uint64_t LogFs_fullSize(void)
 
 
 /***************************************************************************************************
-	LogFs_freeBytes - Свободное место на носителе, байт
+	LogFs_freeSpace - Свободное место на носителе, байт
 ***************************************************************************************************/
-uint64_t LogFs_freeBytes(void)
+uint64_t LogFs_freeSpace(void)
 {
 	uint64_t size = 0;
 	if (core.state == FS_INIT_DONE || core.state == FS_FILE_OPEN)
@@ -414,11 +385,11 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 
 
 /***************************************************************************************************
-	LogFs_createFile - Функция создания сессии/файла. Ищет свободное место не диске, если
+	LogFs_create - Функция создания сессии/файла. Ищет свободное место не диске, если
 	его нет, удаляет самый старший файл в директории, создает в свободном месте заголовок файла
 	и присваивает файлу порядковый номер с момета создания первого файла в ФС.
 ***************************************************************************************************/
-void LogFs_createFile(void)
+void LogFs_create(void)
 {
 	uint32_t address;                  // Вычисляемый адрес чтения
 	uint8_t  buffer[HANDLER_SIZE];     // Буфер для чтения заголовка и номера файла
@@ -480,20 +451,18 @@ void LogFs_createFile(void)
 	// Файл создан, нужно обновить счетчик файлов и состояние
 	core.files++;
 	core.state = FS_FILE_OPEN;
-
 }
 
 
 
 /***************************************************************************************************
-	LogFs_writeToCurrentFile - Функция записи информации в файл
+	LogFs_write - Функция записи информации в файл
 ***************************************************************************************************/
-void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size)
+void LogFs_write(uint8_t* buffer, uint32_t size)
 {
 	uint32_t i;                     // Счетчик циклов
 	uint32_t address;               // Вычисляемый адрес для чтения
 	uint8_t  _buffer[HANDLER_SIZE]; // Буфер для чтения заголовка и номера файла
-	uint32_t adr;                   // Вычисляемый адрес для реализации перехода между секторами
 
 	if (core.state != FS_FILE_OPEN)  // Проверим открыт ли файл, и если нет, то
 		return;                      // ничего не делаем
@@ -509,7 +478,7 @@ void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size)
 	{
 		// Не хватает свободного места, необходимо освободить
 		uint32_t currentSectorFreeSpace = (FS_SECTOR_SIZE - core.cursorPosition);
-		uint16_t needFreeSector = (uint16_t)(0.5 + ((double)(size - currentSectorFreeSpace) / (FS_SECTOR_SIZE - HANDLER_SIZE)));
+		uint16_t needFreeSector = (uint16_t)(0.5 + ((double)(size - currentSectorFreeSpace) / (((uint64_t)FS_SECTOR_SIZE) - HANDLER_SIZE)));
 
 		// Посмотрим имеются ли свободные сектора
 		while (core.freeSectors < needFreeSector && core.files > 1)
@@ -523,7 +492,7 @@ void LogFs_writeToCurrentFile(uint8_t* buffer, uint32_t size)
 	{
 		/* Здесь ограничение на запись: если файл единственный удалять больше нечего, 
 		 * и место закончилось, то просто брокируем запись и выходим */
-		if (core.files <= 1 && LogFs_freeBytes() <= 0) 
+		if (core.files <= 1 && LogFs_freeSpace() <= 0) 
 			return;
 
 		// Определяем адрес места записи
@@ -588,7 +557,7 @@ LogFs_Status LogFs_findFile(LogFs_CMD cmd)
 	// Если в директории только один файл, и тот открыт на запись, то данные core.firstFileSectors
 	// и core.firstFileBegin, оказываются неинициализированы, в этом случае маскируем запрос первого файла
 	// запросом последнего, так как в данном случае это один и тот же файл. 
-	else if (cmd == FIRST_FILE && core.files < 2 && core.state == FS_FILE_OPEN)
+	else if (cmd == FIRST_FILE && core.files == 1 && core.state == FS_FILE_OPEN)
 	{
 		fileSelector.size = 0;
 		fileSelector.id = 0;
@@ -697,10 +666,10 @@ LogFs_Status LogFs_findFile(LogFs_CMD cmd)
 	if (core.files <= FileCount)
 	{
 		fileSelector.state = FS_NOT_INIT;
-		return FS_ALL_FILES_SCROLLS;
+		return FS_FILE_SELECTOR_AT_END;
 	}
 
-	return FS_NOT_OVER;
+	return FILE_SELECTOR_NOT_AT_END;
 }
 
 
@@ -723,11 +692,11 @@ LogFs_Status LogFs_findFileByNum(uint16_t id)
 	// Проверим существует ли такой номер
 	// Посмотрим порядковый номер самого свежего файла (номер должен быть самым большим)
 	LogFs_findFile(LAST_FILE);
-	maxId = LogFs_getFileProperties(FILE_NUMBER);
+	maxId = LogFs_getFileID();
 
 	// Посмотрим порядковый номер самого старого файла (номер должен быть самым маленьким)
 	LogFs_findFile(FIRST_FILE);
-	minId = LogFs_getFileProperties(FILE_NUMBER);
+	minId = LogFs_getFileID();
 
 	// Номер запрашиваемого файла должен принадлжеать данному диапазону, иначе ошибка - файл не найден
 	if (id > maxId || id < minId)
@@ -743,7 +712,7 @@ LogFs_Status LogFs_findFileByNum(uint16_t id)
 		else
 			LogFs_findFile(NEXT_FILE);
 		// Сверяем номер файла. Если совпадает файл найден можно выходить
-		if (LogFs_getFileProperties(FILE_NUMBER) == id)
+		if (LogFs_getFileID() == id)
 			return FS_SUCCESS;
 	}
 	// Если дошли сюда, значит файл не найден - ошибка
@@ -753,11 +722,11 @@ LogFs_Status LogFs_findFileByNum(uint16_t id)
 
 
 /***************************************************************************************************
-	LogFs_readFile - Функция чтения информации из файлов. Должна запускаться только после функции
+	LogFs_read - Функция чтения информации из файлов. Должна запускаться только после функции
 	LogFs_findFile(), поскольку эта функция и позволяет нам определить какой файл будем
 	читать. То, какой файл будем читать содержится в структуре fileSelector.
 ***************************************************************************************************/
-LogFs_Status LogFs_readFile(uint8_t* buffer, uint32_t position, uint32_t size)
+LogFs_Status LogFs_read(uint8_t* buffer, uint32_t position, uint32_t size)
 {
 	uint32_t address;     // Адрес чтения 
 	uint32_t i;           // Счетчик циклов

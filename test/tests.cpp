@@ -53,7 +53,7 @@ namespace logfstests
 			LogFs_format();
 			Assert::IsTrue(LogFs_initialize() != FS_ERROR, L"Initialization failed!\n");
 
-			int fileSectorSize = (int)(0.5 + ((double)fileSize / (FS_SECTOR_SIZE - HANDLER_SIZE)));
+			int fileSectorSize = (int)(0.5 + ((double)fileSize / (((uint64_t)FS_SECTOR_SIZE) - HANDLER_SIZE)));
 			int fileCounter = 0;
 			int sectors = 0;
 			int freeSectors = FS_SECTORS_NUM;
@@ -67,17 +67,17 @@ namespace logfstests
 						fileCounter++;
 						freeSectors -= fileSectorSize;
 					}
-					LogFs_createFile();
+					LogFs_create();
 					putTextToBuffer(writeBuffer, fileSize);
-					LogFs_writeToCurrentFile(writeBuffer, fileSize);
+					LogFs_write(writeBuffer, fileSize);
 					Assert::IsTrue(LogFs_getFileNumber() == fileCounter, L"File counter is wrong!\n");
 					Assert::IsTrue(LogFs_findFile(LAST_FILE) != FS_ERROR, L"Current file not found by LogFs_findFile(LAST_FILE)!\n");
-					Assert::IsTrue(LogFs_getFileProperties(FILE_SIZE) == fileSize, L"Current file size is incorrect!\n");
-					Assert::IsTrue(LogFs_getFileProperties(FILE_NUMBER) == currentFileId, L"Current file id is incorrect!\n");
-					Assert::IsTrue(LogFs_findFileByNum(LogFs_getFileProperties(FILE_NUMBER)) != FS_ERROR, L"Current file not found by LogFs_findFileByNum()!\n");
-					Assert::IsTrue(LogFs_getFileProperties(FILE_SIZE) == fileSize, L"Current file size is incorrect!\n");
-					Assert::IsTrue(LogFs_getFileProperties(FILE_NUMBER) == currentFileId, L"Current file id is incorrect!\n");
-					Assert::IsTrue(LogFs_readFile(readBuffer, 0, fileSize) != FS_ERROR, L"Current file read error!\n");
+					Assert::IsTrue(LogFs_getFileSize() == fileSize, L"Current file size is incorrect!\n");
+					Assert::IsTrue(LogFs_getFileID() == currentFileId, L"Current file id is incorrect!\n");
+					Assert::IsTrue(LogFs_findFileByNum(LogFs_getFileID()) != FS_ERROR, L"Current file not found by LogFs_findFileByNum()!\n");
+					Assert::IsTrue(LogFs_getFileSize() == fileSize, L"Current file size is incorrect!\n");
+					Assert::IsTrue(LogFs_getFileID() == currentFileId, L"Current file id is incorrect!\n");
+					Assert::IsTrue(LogFs_read(readBuffer, 0, fileSize) != FS_ERROR, L"Current file read error!\n");
 					for (int i = 0; i < fileSize; i++)
 						Assert::IsTrue(readBuffer[i] == writeBuffer[i], L"Read data and write data doesn't match!\n");
 					Assert::IsTrue(LogFs_initialize() != FS_ERROR, L"Initialization failed!\n");
@@ -144,11 +144,11 @@ namespace logfstests
 			Assert::IsTrue(LogFs_getFileNumber() == 0, L"The number of files is not zero!\n");
 			Assert::IsTrue(LogFs_findFile(FIRST_FILE) == FS_ERROR, L"Function \"LogFs_findFile(FIRST_FILE)\" didn't return error!\n");
 			Assert::IsTrue(LogFs_findFile(NEXT_FILE) == FS_ERROR, L" Function \"LogFs_findFile(NEXT_FILE)\" didn't return error!\n");
-			Assert::IsTrue(LogFs_readFile(buffer, 0, 0) == FS_ERROR, L"Function \"LogFs_readFile\" didn't return error at NEXT_FILE iterator!\n");
+			Assert::IsTrue(LogFs_read(buffer, 0, 0) == FS_ERROR, L"Function \"LogFs_read\" didn't return error at NEXT_FILE iterator!\n");
 			Assert::IsTrue(LogFs_findFile(LAST_FILE) == FS_ERROR, L"Function \"LogFs_findFile(LAST_FILE)\" didn't return error!\n");
-			Assert::IsTrue(LogFs_readFile(buffer, 0, 0) == FS_ERROR, L"Function \"LogFs_readFile\" didn't return error at LAST_FILE iterator!\n");
-			Assert::IsTrue(LogFs_fullSize() == (FS_SECTORS_NUM * (FS_SECTOR_SIZE - HANDLER_SIZE)), L"Flash size calculated incorrectly!\n");
-			Assert::IsTrue(LogFs_freeBytes() == (FS_SECTORS_NUM * (FS_SECTOR_SIZE - HANDLER_SIZE)), L"Flash free size calculated incorrectly!\n");
+			Assert::IsTrue(LogFs_read(buffer, 0, 0) == FS_ERROR, L"Function \"LogFs_read\" didn't return error at LAST_FILE iterator!\n");
+			Assert::IsTrue(LogFs_totalSize() == (FS_SECTORS_NUM * (FS_SECTOR_SIZE - HANDLER_SIZE)), L"Flash size calculated incorrectly!\n");
+			Assert::IsTrue(LogFs_freeSpace() == (FS_SECTORS_NUM * (FS_SECTOR_SIZE - HANDLER_SIZE)), L"Flash free size calculated incorrectly!\n");
 		}
 		TEST_METHOD(rewriteTest)
 		{
