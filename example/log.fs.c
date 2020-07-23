@@ -376,7 +376,7 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 
 	// Если fileSelector указывает на файл, который мы удаляем, сбрасываем его инициализацию
 	if ((fileSelector.state == FS_INIT_DONE) && (fileSelector.id == LogFs_getFileIdAtSector(core.firstFileBegin)))
-		fileSelector.state == FS_NOT_INIT;
+		fileSelector.state = FS_NOT_INIT;
 
 	// Определяем сколько секторов занимает файл
 	count = LogFs_getNumberSectorsFile(core.firstFileBegin);
@@ -702,12 +702,9 @@ LogFs_Status LogFs_findFile(LogFs_CMD cmd)
 	FileCount++;
 	// Проверяем все ли файлы в хранилище были просмотрены
 	if (core.files <= FileCount)
-	{
-		fileSelector.state = FS_NOT_INIT;
 		return FS_FILE_SELECTOR_AT_END;
-	}
-
-	return FILE_SELECTOR_NOT_AT_END;
+	else
+		return FILE_SELECTOR_NOT_AT_END;
 }
 
 
