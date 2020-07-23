@@ -63,7 +63,16 @@ static LogFs_Status LogFs_deleteOldestFile(void);
 ***************************************************************************************************/
 static uint16_t LogFs_getNumberSectorsFile(uint16_t Sector);
 
+/***************************************************************************************************
+	LogFs_getFileIdAtSector - Узнать ID файла, который находится в секторе sector;
+	в секторе с номером Sector
 
+	Параметры:
+				Sector - Номер сектора в котором находится файл (от 0 до FS_SECTORS_NUM - 1)
+	Возвращает:
+				id файла
+***************************************************************************************************/
+static uint16_t LogFs_getFileIdAtSector(uint16_t sector);
 
 /*------------------------------------------Публичная часть модуля-------------------------------------------------------------*/
 
@@ -113,6 +122,31 @@ uint16_t LogFs_getLastFileID(void)
 	return *(uint16_t*)(buffer + 2);
 }
 
+/***************************************************************************************************
+	LogFs_getFileIdAtSector - Узнать ID файла, который находится в секторе sector;
+	в секторе с номером Sector
+***************************************************************************************************/
+static uint16_t LogFs_getFileIdAtSector(uint16_t sector)
+{
+	uint32_t address;               // Вычисляемый адрес для чтения
+	uint8_t  buffer[HANDLER_SIZE];  // Буфер для чтения заголовка и номера файла
+	uint16_t i;                     // Счетчик циклов
+
+	// Если файловая система не инициализирована, то выходим
+	if (core.state != FS_INIT_DONE && core.state != FS_FILE_OPEN)
+		return 0;
+
+	for (i = 0; i < HANDLER_SIZE; i++)
+		buffer[i] = 0;
+
+	// Определяем стартовый адрес расположения последнего созданного файла
+	address = FS_SECTOR_SIZE * sector;
+	// Читаем залоговок и номер файла
+	readMemory(address, buffer, HANDLER_SIZE);
+
+	// Возвращаем порядкой номер файла
+	return *(uint16_t*)(buffer + 2);
+}
 
 /***************************************************************************************************
 	LogFs_getNumberSectorsFile - Количество секторов которые занимает файл c началом
@@ -339,6 +373,10 @@ static LogFs_Status LogFs_deleteOldestFile(void)
 
 	for (i = 0; i < HANDLER_SIZE; i++)
 		buffer[i] = 0;
+
+	// Если fileSelector указывает на файл, который мы удаляем, сбрасываем его инициализацию
+	if ((fileSelector.state == FS_INIT_DONE) && (fileSelector.id == LogFs_getFileIdAtSector(core.firstFileBegin)))
+		fileSelector.state == FS_NOT_INIT;
 
 	// Определяем сколько секторов занимает файл
 	count = LogFs_getNumberSectorsFile(core.firstFileBegin);
