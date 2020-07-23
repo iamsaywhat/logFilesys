@@ -454,12 +454,13 @@ void LogFs_createFile(void)
 	core.cursorPosition = HANDLER_SIZE;
 	// Раз заняли один сектор новым файлом, то нужно декрементировать счетчик свободных секторов
 	core.freeSectors--;
-	// Файл создан, нужно обновить счетчик файлов и состояние
-	core.files++;
-	core.state = FS_FILE_OPEN;
 	// После создания нового файла, он становится последним в списке
 	core.lastFileBegin = core.currentFileSector;
 	core.lastFileSectors = 1;
+	// Файл создан, нужно обновить счетчик файлов и состояние
+	core.files++;
+	core.state = FS_FILE_OPEN;
+
 }
 
 
@@ -564,7 +565,10 @@ LogFs_Status LogFs_findFile(LogFs_CMD cmd)
 	if (cmd == NEXT_FILE && fileSelector.state != FS_INIT_DONE)
 		return FS_ERROR;
 
-	else if (cmd == FIRST_FILE && core.files < 2)
+	// Если в директории только один файл, и тот открыт на запись, то данные core.firstFileSectors
+	// и core.firstFileBegin, оказываются неинициализированы, в этом случае маскируем запрос первого файла
+	// запросом последнего, так как в данном случае это один и тот же файл. 
+	else if (cmd == FIRST_FILE && core.files < 2 && core.state == FS_FILE_OPEN)
 	{
 		fileSelector.size = 0;
 		fileSelector.id = 0;

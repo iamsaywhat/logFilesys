@@ -2,8 +2,8 @@
 #include "CppUnitTest.h"
 
 extern "C" {
-#include "..\source\log.fs.platformdepend.h"
-#include "..\source\log.fs.h"
+#include "..\example\log.fs.platformdepend.h"
+#include "..\example\log.fs.h"
 }
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -32,7 +32,7 @@ namespace logfstests
 		uint8_t writeBuffer[FS_SECTORS_NUM * FS_SECTOR_SIZE];
 		uint8_t readBuffer[FS_SECTORS_NUM * FS_SECTOR_SIZE];
 
-		enum LogFsTestStatus {
+		enum TestStatus {
 			PASSED,
 			FAILED
 		};
@@ -48,7 +48,7 @@ namespace logfstests
 			}
 		}
 
-		LogFsTestStatus LogFs_rewriteTest(int cycles, int fileSize)
+		TestStatus loolOverwrite(int cycles, int fileSize)
 		{
 			LogFs_format();
 			Assert::IsTrue(LogFs_initialize() != FS_ERROR, L"Initialization failed!\n");
@@ -127,7 +127,7 @@ namespace logfstests
 				eraseSector(address);
 				readMemory(address, buffer, FS_SECTOR_SIZE);
 				for (int j = 0; j < FS_SECTOR_SIZE; j++)
-					Assert::IsFalse(buffer[i] != 0xFF, L"The Sector is not erased by eraseSector()!\n");
+					Assert::IsFalse(buffer[j] != 0xFF, L"The Sector is not erased by eraseSector()!\n");
 			}
 		}
 
@@ -152,9 +152,9 @@ namespace logfstests
 		}
 		TEST_METHOD(rewriteTest)
 		{
-			Assert::IsTrue(LogFs_rewriteTest(1, 5 * (FS_SECTOR_SIZE - HANDLER_SIZE)) == PASSED);
-			Assert::IsTrue(LogFs_rewriteTest(5, 3 * (FS_SECTOR_SIZE - HANDLER_SIZE)) == PASSED);
-			Assert::IsTrue(LogFs_rewriteTest(6, 2 * (FS_SECTOR_SIZE - HANDLER_SIZE)) == PASSED);
+			Assert::IsTrue(loolOverwrite(1, 5 * (FS_SECTOR_SIZE - HANDLER_SIZE)) == PASSED);
+			Assert::IsTrue(loolOverwrite(5, 3 * (FS_SECTOR_SIZE - HANDLER_SIZE)) == PASSED);
+			Assert::IsTrue(loolOverwrite(6, 2 * (FS_SECTOR_SIZE - HANDLER_SIZE)) == PASSED);
 		}
 	};
 }
